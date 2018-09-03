@@ -22,6 +22,9 @@ WORKSPACE_NAME="default"
 DOCKER_PORT_ARG=""
 # Holds the test target if the -t flag is used.
 DOCKER_TEST_ARG="" # The tag of the docker image for running a workspace.
+# Comma-separated key-value pairs of variables passed to the container,
+# transformed internally into Airflow variables necessary for integration tests
+DOCKER_ENV_ARGS=""
 IMAGE_NAME="gcr.io/${PROJECT_ID}/airflow-upstream"
 # If true, the docker image is rebuilt locally. Specified using the -r flag.
 REBUILD=false
@@ -47,7 +50,9 @@ build_local () {
 run_container () {
   if [[ ! -z $DOCKER_TEST_ARG ]]; then
       POST_INIT_ARG=" -c './run_unit_tests.sh '"${DOCKER_TEST_ARG}"' -s --logging-level=DEBUG'\""
-      else
+  elif [[ ! -z $DAGS_PATH ]]; then
+      POST_INIT_ARG=" -c './run_int_tests.sh "${DOCKER_ENV_ARGS}" "${DAGS_PATH}"'\""
+  else
       POST_INIT_ARG="\""
   fi
   CMD=$(printf "${FORMAT_STRING}" "${WORKSPACE_DIRECTORY}" "${WORKSPACE_NAME}" "${WORKSPACE_DIRECTORY}" "${DOCKER_PORT_ARG}" "${IMAGE_NAME}" "${POST_INIT_ARG}")
@@ -55,7 +60,7 @@ run_container () {
 }
 
 # Parse Flags
-while getopts "ha:p:w:crt:" opt; do
+while getopts "ha:p:w:e:crti:" opt; do
   case $opt in
     h)
       echo "Usage ./run_environment.sh -a PROJECT_ID"
@@ -68,12 +73,17 @@ while getopts "ha:p:w:crt:" opt; do
       echo "Show this help message"
       echo "-p <port>"
       echo "Forward the webserver port to <port>"
+      echo "-e <key-value pairs>"
+      echo "Pass Airflow variables as a comma-separated key-value pairs chain, e.g. KEY1=VALUE1,KEY2=VALUE2,..."
       echo "-c"
       echo "Delete your local copy of the environment image"
       echo "-r"
       echo "Rebuild the environment image locally"
       echo "-t <target>"
       echo "Run the specified unit test target"
+      echo "-i <path>"
+      echo "Run integration test DAGs from the specified path, e.g.
+      \"/home/airflow/incubator-airflow/airflow/contrib/example_dags/*\""
       exit 0
       ;;
     a)
@@ -84,6 +94,9 @@ while getopts "ha:p:w:crt:" opt; do
       ;;
     p)
       DOCKER_PORT_ARG="-p 127.0.0.1:${OPTARG}:8080"
+      ;;
+    e)
+      DOCKER_ENV_ARGS="${OPTARG}"
       ;;
     :)
       echo "Option -${OPTARG} requires an argument"
@@ -99,6 +112,9 @@ while getopts "ha:p:w:crt:" opt; do
       ;;
      t)
       DOCKER_TEST_ARG="${OPTARG}"
+      ;;
+     i)
+      DAGS_PATH="${OPTARG}"
       ;;
     \?)
       echo "Unknown option: -${OPTARG}"
