@@ -60,7 +60,7 @@ run_container () {
 }
 
 # Parse Flags
-while getopts "ha:p:w:e:crti:" opt; do
+while getopts "ha:p:w:crt:e:i:" opt; do
   case $opt in
     h)
       echo "Usage ./run_environment.sh -a PROJECT_ID"
