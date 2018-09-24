@@ -25,7 +25,6 @@ DOCKER_TEST_ARG="" # The tag of the docker image for running a workspace.
 # Comma-separated key-value pairs of variables passed to the container,
 # transformed internally into Airflow variables necessary for integration tests
 DOCKER_ENV_ARGS=""
-IMAGE_NAME="gcr.io/${PROJECT_ID}/airflow-upstream"
 # If true, the docker image is rebuilt locally. Specified using the -r flag.
 REBUILD=false
 # String used to build the container run command.
@@ -48,14 +47,16 @@ build_local () {
 # the webserver. If performing a test run, it is similar to the default run,
 # but immediately executes a test, then exits.
 run_container () {
-  if [[ ! -z $DOCKER_TEST_ARG ]]; then
-      POST_INIT_ARG=" -c './run_unit_tests.sh '"${DOCKER_TEST_ARG}"' -s --logging-level=DEBUG'\""
-  elif [[ ! -z $DAGS_PATH ]]; then
-      POST_INIT_ARG=" -c './run_int_tests.sh "${DOCKER_ENV_ARGS}" "${DAGS_PATH}"'\""
+  if [[ ! -z ${DOCKER_TEST_ARG} ]]; then
+      POST_INIT_ARG=" -c './run_unit_tests.sh '"${DOCKER_TEST_ARG}"' \
+      -s --logging-level=DEBUG'\""
+  elif [[ ! -z ${DAGS_PATH} ]]; then
+      POST_INIT_ARG=" -c './run_int_tests.sh --vars="${DOCKER_ENV_ARGS}" --dags="${DAGS_PATH}"'\""
   else
       POST_INIT_ARG="\""
   fi
   CMD=$(printf "${FORMAT_STRING}" "${WORKSPACE_DIRECTORY}" "${WORKSPACE_NAME}" "${WORKSPACE_DIRECTORY}" "${DOCKER_PORT_ARG}" "${IMAGE_NAME}" "${POST_INIT_ARG}")
+  echo ${CMD}
   eval ${CMD}
 }
 
@@ -74,7 +75,8 @@ while getopts "ha:p:w:crt:e:i:" opt; do
       echo "-p <port>"
       echo "Forward the webserver port to <port>"
       echo "-e <key-value pairs>"
-      echo "Pass Airflow variables as a comma-separated key-value pairs chain, e.g. KEY1=VALUE1,KEY2=VALUE2,..."
+      echo "Pass Airflow variables as an array of comma-separated key-value pairs" \
+           "e.g. [KEY1=VALUE1,KEY2=VALUE2,...]"
       echo "-c"
       echo "Delete your local copy of the environment image"
       echo "-r"
@@ -82,8 +84,8 @@ while getopts "ha:p:w:crt:e:i:" opt; do
       echo "-t <target>"
       echo "Run the specified unit test target"
       echo "-i <path>"
-      echo "Run integration test DAGs from the specified path, e.g.
-      \"/home/airflow/incubator-airflow/airflow/contrib/example_dags/*\""
+      echo "Run integration test DAGs from the specified path, e.g. " \
+           "/home/airflow/incubator-airflow/airflow/contrib/example_dags/*"
       exit 0
       ;;
     a)
@@ -142,11 +144,10 @@ if [[ ! -d "$WORKSPACE_NAME" ]]; then
 fi
 
 # Establish an image for the environment
-if $REBUILD; then
+if ${REBUILD}; then
   build_local
 elif [[ -z "$(docker images -q ${IMAGE_NAME} 2> /dev/null)" ]]; then
   build_local
 fi
 
 run_container
-
