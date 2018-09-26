@@ -12,12 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Bash sanity settings (error on exit, complain for undefined vars, error when pipe fails)
+set -euo pipefail
+
+#################### Workspace settings
 
 # Directory where the workspaces are located. For proper usage, this is
 # the working directory.
-WORKSPACE_DIRECTORY="$(pwd)"
+WORKSPACE_DIRECTORY="${MY_DIR}"
 # Name of the workspace. If not specified, default is "default".
 WORKSPACE_NAME="default"
+
+
+#################### Port forwarding settings
+
 # If port forwarding is used, holds the port argument to pass to docker run.
 DOCKER_PORT_ARG=""
 # Holds the test target if the -t flag is used.
