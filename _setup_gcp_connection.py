@@ -13,6 +13,7 @@
 # limitations under the License.
 """Writes GCP Connection to the airflow db."""
 import json
+import os
 import sys
 
 from airflow import models
@@ -22,12 +23,21 @@ KEYPATH_EXTRA = 'extra__google_cloud_platform__key_path'
 SCOPE_EXTRA = 'extra__google_cloud_platform__scope'
 PROJECT_EXTRA = 'extra__google_cloud_platform__project'
 
+key_file_name = os.environ.get('GCP_SERVICE_ACCOUNT_KEY_NAME')
+full_key_path = '/home/airflow/.key/' + key_file_name
+if not os.path.isfile(full_key_path):
+  print
+  print 'The key file ' + full_key_path + ' is missing!'
+  print
+  sys.exit(1)
+
 session = settings.Session()
 try:
   conn = session.query(models.Connection).filter(
       models.Connection.conn_id == 'google_cloud_default')[0]
   extras = conn.extra_dejson
-  extras[KEYPATH_EXTRA] = '/home/airflow/.key/key.json'
+  extras[KEYPATH_EXTRA] =  full_key_path
+  print 'Setting GCP key file to ' + full_key_path
   extras[SCOPE_EXTRA] = 'https://www.googleapis.com/auth/cloud-platform'
   extras[PROJECT_EXTRA] = sys.argv[1]
   conn.extra = json.dumps(extras)

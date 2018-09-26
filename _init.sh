@@ -25,17 +25,27 @@ cd incubator-airflow \
 && sudo -u postgres createuser root \
 && sudo -u postgres createdb airflow/airflow.db
 
+echo
+echo "Activating service account with /home/airflow/.key/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
+echo
+
+KEY_DIR="/home/airflow/.key"
+
 # gcloud login
-if [ -e "/home/airflow/.key/key.json" ]; then
+if [ -e "/home/airflow/.key/${GCP_SERVICE_ACCOUNT_KEY_NAME}" ]; then
   # Allow application-default login
-  echo "export GOOGLE_APPLICATION_CREDENTIALS=/home/airflow/.key/key.json" >> /root/.bashrc
-  sudo gcloud auth activate-service-account --key-file=/home/airflow/.key/key.json
-  ACCOUNT=$(cat /home/airflow/.key/key.json | python -c 'import json, sys; info=json.load(sys.stdin); print info["client_email"]')
-  PROJECT=$(cat /home/airflow/.key/key.json | python -c 'import json, sys; info=json.load(sys.stdin); print info["project_id"]')
+  echo "export GOOGLE_APPLICATION_CREDENTIALS=${KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" >> /root/.bashrc
+  sudo gcloud auth activate-service-account \
+       --key-file="${KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
+  ACCOUNT=$(cat "${KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" | \
+      python -c 'import json, sys; info=json.load(sys.stdin); print info["client_email"]')
+  PROJECT=$(cat "${KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" | \
+      python -c 'import json, sys; info=json.load(sys.stdin); print info["project_id"]')
   gcloud config set account "${ACCOUNT}"
   gcloud config set project "${PROJECT}"
   airflow initdb
   python /home/airflow/_setup_gcp_connection.py "${PROJECT}"
 else
-  echo "WARNING: No keyfile found. Running without service account credentials."
+  echo "WARNING: No key ${KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME} found."\
+       " Running without service account credentials."
 fi

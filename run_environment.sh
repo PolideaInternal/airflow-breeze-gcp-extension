@@ -24,13 +24,18 @@ DOCKER_PORT_ARG=""
 DOCKER_TEST_ARG="" # The tag of the docker image for running a workspace.
 # Comma-separated key-value pairs of variables passed to the container,
 # transformed internally into Airflow variables necessary for integration tests
-DOCKER_ENV_ARGS=""
-# If true, the docker image is rebuilt locally. Specified using the -r flag.
-REBUILD=false
+INT_TEST_VARS=""
+# Name of the service account key (should be in the 'key' directory)
+GCP_SERVICE_ACCOUNT_KEY_NAME="key.json"
+
+#################### Docker command to use
+
 # String used to build the container run command.
-FORMAT_STRING='docker run --rm -it '\
-'-v %s/%s/incubator-airflow:/home/airflow/incubator-airflow '\
+DOCKER_COMMAND_FORMAT_STRING=''\
+'docker run --rm -it '\
+'-v %s/incubator-airflow:/home/airflow/incubator-airflow '\
 '-v %s/key:/home/airflow/.key '\
+'-e GCP_SERVICE_ACCOUNT_KEY_NAME '\
 '-u airflow %s %s '\
 'bash -c "sudo -E ./_init.sh && cd incubator-airflow && sudo -E su%s'
 
@@ -61,8 +66,8 @@ run_container () {
 }
 
 # Parse Flags
-while getopts "ha:p:w:crt:e:i:" opt; do
-  case $opt in
+while getopts "ha:p:w:uct:e:i:k" opt; do
+  case ${opt} in
     h)
       echo "Usage ./run_environment.sh -a PROJECT_ID"
       echo "FLAGS"
@@ -115,8 +120,8 @@ while getopts "ha:p:w:crt:e:i:" opt; do
      t)
       DOCKER_TEST_ARG="${OPTARG}"
       ;;
-     i)
-      DAGS_PATH="${OPTARG}"
+    k)
+      GCP_SERVICE_ACCOUNT_KEY_NAME="${OPTARG:-${GCP_SERVICE_ACCOUNT_KEY_NAME}}"
       ;;
     \?)
       echo "Unknown option: -${OPTARG}"
@@ -131,9 +136,29 @@ if [[ -z "$PROJECT_ID" ]]; then
 fi
 IMAGE_NAME="gcr.io/${PROJECT_ID}/airflow-upstream"
 
-# Check if the key directory is already made
-if [[ ! -d "key" ]]; then
-  mkdir key
+# Check if the key directory exists
+if [ ! -d "key" ]; then
+  echo
+  echo "Automatically creating key directory:"
+  mkdir -v ${MY_DIR}/key
+  echo
+fi
+
+FULL_AIRFLOW_SOURCE_DIR="${WORKSPACE_DIRECTORY}/${WORKSPACE_NAME}/incubator-airflow"
+
+if [ ! -f "${MY_DIR}/key/${GCP_SERVICE_ACCOUNT_KEY_NAME}" ]; then
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo
+    echo "Missing key file ${MY_DIR}/key/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
+    echo
+    echo "Authentication to Google Cloud Platform will not work."
+    echo "You need to place service account json file in key directory if you want"
+    echo "to connect to Google Cloud Platform"
+
+    ${MY_DIR}/confirm "Proceeding without key"
+    echo
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+fi
 fi
 
 # Check if the workspace is already made
