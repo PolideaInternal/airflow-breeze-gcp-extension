@@ -30,8 +30,31 @@ WORKSPACE_NAME="default"
 
 # If port forwarding is used, holds the port argument to pass to docker run.
 DOCKER_PORT_ARG=""
+
+
+#################### Build image settings
+
+# If true, the docker image is rebuilt locally. Specified using the -r flag.
+REBUILD=false
+# Whether to upload image to the GCR Repository
+UPLOAD_IMAGE=false
+# Repository which is used to clone incubator-airflow from - when it's not yet checked out
+AIRFLOW_REPOSITORY="https://github.com/apache/incubator-airflow.git"
+# Branch of the repository to check out when it's first cloned
+AIRFLOW_REPOSITORY_BRANCH="master"
+# Whether pip install should be executed when entering docker
+RUN_PIP_INSTALL=false
+
+#################### Unit test variables
+
 # Holds the test target if the -t flag is used.
-DOCKER_TEST_ARG="" # The tag of the docker image for running a workspace.
+DOCKER_TEST_ARG=""
+
+
+#################### Integration test variables
+
+# Dags specification for integration tests
+INT_TEST_DAGS=""
 # Comma-separated key-value pairs of variables passed to the container,
 # transformed internally into Airflow variables necessary for integration tests
 INT_TEST_VARS=""
@@ -49,6 +72,8 @@ DOCKER_COMMAND_FORMAT_STRING=''\
 '-u airflow %s %s '\
 'bash -c "sudo -E ./_init.sh && cd incubator-airflow && sudo -E su%s'
 
+#################### Helper functions
+
 # Helper function for building the docker image locally.
 build_local () {
   docker build . -t ${IMAGE_NAME}
@@ -56,11 +81,21 @@ build_local () {
 }
 
 # Builds a docker run command based on settings and evaluates it.
+#
 # The workspace is run in an interactive bash session and the incubator-airflow
-# directory is mounted. Also becomes superuser within container, installs
-# dynamic dependencies, and sets up postgres. If specified, forwards ports for
-# the webserver. If performing a test run, it is similar to the default run,
-# but immediately executes a test, then exits.
+# directory is mounted as well as key directory for sharing GCP key.
+#
+# Also becomes superuser within container, installs
+# dynamic dependencies, and sets up postgres.
+#
+# If specified, forwards ports for the webserver.
+#
+# If performing an unit test run (-t), it is similar to the default run, but immediately
+# executes the test(s) specified, then exits.
+#
+# If performing an integration test run (-i), it is similar to the default run but
+# immediately executes integration test(s) specified, then exits.
+#
 run_container () {
   if [[ ! -z ${DOCKER_TEST_ARG} ]]; then
       POST_INIT_ARG=" -c './run_unit_tests.sh '"${DOCKER_TEST_ARG}"' \
