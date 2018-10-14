@@ -57,7 +57,7 @@ DOCKER_TEST_ARG=""
 INT_TEST_DAGS=""
 # Comma-separated key-value pairs of variables passed to the container,
 # transformed internally into Airflow variables necessary for integration tests
-INT_TEST_VARS=""
+INT_TEST_VARS="[PROJECT_ID=polidea-airflow,LOCATION=europe-west1,SOURCE_REPOSITORY=https://source.developers.google.com/projects/polidea-airflow/repos/hello-world/moveable-aliases/master,ENTRYPOINT=helloWorld]"
 # Name of the service account key (should be in the 'key' directory)
 GCP_SERVICE_ACCOUNT_KEY_NAME="key.json"
 
@@ -113,11 +113,9 @@ run_container () {
                     " -s --logging-level=DEBUG'\""
   elif [[ ! -z ${INT_TEST_DAGS} ]]; then
       echo
-      echo "Running integration tests with variables: ${INT_TEST_VARS} and "\
-           " dags: ${INT_TEST_DAGS}"
+      echo "Running integration tests with variables: ${INT_TEST_VARS} and dags: ${INT_TEST_DAGS} '"
       echo
-      POST_INIT_ARG=" -c './run_int_tests.sh --vars='${INT_TEST_VARS}'"\
-                    " --dags='${FULL_AIRFLOW_SOURCE_DIR}/${INT_TEST_DAGS}'\""
+      POST_INIT_ARG=" -c './run_int_tests.sh --vars=${INT_TEST_VARS} --dags=/home/airflow/${INT_TEST_DAGS} '\""
   else
       POST_INIT_ARG="\""
   fi
