@@ -1,0 +1,6 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/polidea-airflow/airflow-breeze', '.' ]
+images:
+- 'gcr.io/polidea-airflow/airflow-breeze'
+timeout: 4800s

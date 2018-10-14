@@ -1,4 +1,8 @@
 .DS_Store
 /key
 polidea
+output
+*.iml
 .idea
+test
+airflow-breeze-config

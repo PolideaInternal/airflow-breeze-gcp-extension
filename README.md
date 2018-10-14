@@ -1,13 +1,18 @@
-# Composer Airflow Contribution Container
+# Composer Airflow Breeze Container
+
+It's a breeze to have Airflow running for GCP-related development.
 
 ## About
 
-The Composer Airflow Contribution Container allows you to easily make a change
-to the apache/incubator-airflow repo and test your change without going through
-the overhead of manually setting up an Airflow environment.
+The Composer Airflow Breeze Container allows you to easily create development
+environment to work on apache/incubator-airflow repository and test your changes
+interfacing with GCP without going through the overhead of manually setting 
+up an Airflow environment.
 
 It allows you to have multiple contribution workspaces simultaneously, storing
 them in subdirectories of its base directory.
+
+It also allows you to share common configuration 
 
 ## Intended Usage
 

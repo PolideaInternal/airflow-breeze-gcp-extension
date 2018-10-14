@@ -1,0 +1,1 @@
+. /usr/share/virtualenvwrapper/virtualenvwrapper.sh

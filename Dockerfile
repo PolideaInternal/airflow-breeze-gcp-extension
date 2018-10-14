@@ -13,29 +13,11 @@
 # limitations under the License.
 
 # Using official python runtime base image
-FROM python:2.7.12
+FROM ubuntu:18.04
 
-RUN apt-get update
+SHELL ["/bin/bash", "-c"]
 
-# lsb
-RUN apt-get install -y --no-install-recommends lsb-release
-
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libmysqlclient-dev
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libsasl2-dev
-
-# MySQL Client for CloudSQL setup
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bzip2 \
-    unzip \
-    xz-utils \
-  && rm -rf /var/lib/apt/lists/*
-RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/jessie-backports.list
-RUN set -x \
-  && apt-get update \
-  && apt-get install -y \
-    mysql-client \
-  && rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Java installation.
 ENV LANG C.UTF-8
@@ -48,75 +30,107 @@ RUN { \
     echo 'dirname "$(dirname "$(readlink -f "$(which javac || which java)")")"'; \
   } > /usr/local/bin/docker-java-home \
   && chmod +x /usr/local/bin/docker-java-home
+
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
-RUN set -x \
-  && apt-get update \
-  && apt-get install -y -t jessie-backports openjdk-8-jdk \
-  && rm -rf /var/lib/apt/lists/* \
-  && [ "$JAVA_HOME" = "$(docker-java-home)" ]
-# see CA_CERTIFICATES_JAVA_VERSION notes above
+
+# lsb
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        lsb-release mysql-server libmysqlclient-dev libsasl2-dev mysql-client \
+    && apt-get clean
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bzip2 unzip apt-transport-https xz-utils \
+    && apt-get clean
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    openjdk-8-jdk  \
+    && [ "$JAVA_HOME" = "$(docker-java-home)" ] \
+    && apt-get clean
+
 RUN /var/lib/dpkg/info/ca-certificates-java.postinst configure
 
-# Install Google Cloud SDK.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends apt-transport-https
+    && apt-get install -y --no-install-recommends \
+        postgresql postgresql-contrib \
+    && apt-get clean
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python-pip python3-pip virtualenvwrapper \
+    && apt-get clean
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git-all tig tmux vim less curl gnupg2 software-properties-common \
+    && apt-get clean
+
 RUN export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" \
     && echo "deb https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list \
     && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
     |apt-key add - \
     && apt-get update \
-    && apt-get install -y --no-install-recommends google-cloud-sdk
+    && apt-get install -y --no-install-recommends google-cloud-sdk \
+    && apt-get clean
 
-# Postgres for localexecutor
-RUN apt-get -y install postgresql postgresql-contrib
 
-# Add on python dependencies.
-RUN pip install --upgrade pip
-RUN pip install google-cloud-dataflow
-RUN pip install google-cloud-storage
-RUN pip install cryptography
-RUN pip install pyyaml
-RUN pip install iso8601
-RUN pip install celery[redis]
-RUN pip install pandas-gbq
+# Install python 3.5 for airflow's compatibility,
+# python-dev and necessary libraries to build all python packages
+RUN add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install  -y --no-install-recommends python3.5 python-dev python3.5-dev \
+       build-essential autoconf libtool libkrb5-dev \
+    && apt-get clean
 
-RUN pip install tensorflow
-RUN pip install tensorflow-transform
-RUN pip install pandas
-RUN pip install virtualenv
-RUN pip install unicodecsv
-RUN pip install pyOpenSSL==16.2.0
-RUN pip install alembic
-RUN pip install kerberos
-RUN pip install requests_kerberos
-RUN pip install docker
-RUN pip install hdfs
-
-WORKDIR /home/airflow
-RUN mkdir -p /home/airflow/dags
-
-# Preinstall airflow
-# Airflow requires this variable be set on installation to avoid a GPL dependency.
-ENV SLUGIFY_USES_TEXT_UNIDECODE yes
-RUN git clone https://github.com/apache/incubator-airflow.git temp_airflow
-RUN cd temp_airflow && pip install -e .[devel,gcp_api,postgres,hive,crypto,celery,rabbitmq,kerberos,hdfs]
-RUN rm -rf temp_airflow
-
+WORKDIR /workspace
+RUN mkdir -pv /airflow/dags
 # Set airflow home
-ENV AIRFLOW_HOME /home/airflow
+ENV AIRFLOW_HOME /airflow
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        mlocate \
+    && apt-get clean
+
+RUN updatedb
 
 # Setup un-privileged user with passwordless sudo access.
-RUN apt-get update && apt-get install -y --no-install-recommends sudo
+RUN apt-get update && apt-get install -y --no-install-recommends sudo && apt-get clean
 RUN groupadd -r airflow && useradd -m -r -g airflow -G sudo airflow
-RUN echo 'airflow\tALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-USER airflow
+RUN echo 'airflow   ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-# Add useful tools
-RUN sudo apt-get -y install git-all tig tmux vim less
+RUN pip install --upgrade pip setuptools virtualenvwrapper \
+   && pip3 install --upgrade pip setuptools virtualenvwrapper
 
-# Add config and scripts
-COPY airflow.cfg /home/airflow
-COPY _init.sh /home/airflow
-COPY _setup_gcp_connection.py /home/airflow
+RUN source /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
+    && mkvirtualenv -p /usr/bin/python3.5 airflow35  \
+    && mkvirtualenv -p /usr/bin/python2.7 airflow27
 
+## Preinstall airflow
+## Airflow requires this variable be set on installation to avoid a GPL dependency.
+ENV SLUGIFY_USES_TEXT_UNIDECODE yes
+RUN git clone https://github.com/apache/incubator-airflow.git temp_airflow
+
+RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
+    && cd temp_airflow \
+    && workon airflow27 \
+    && pip install -e .[devel_ci]
+
+RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
+    && cd temp_airflow \
+    && workon airflow35 \
+    && pip install -e .[devel_ci]
+RUN rm -rf temp_airflow
+
+RUN mkdir -pv /airflow/output
+
+## Add config and scripts
+COPY airflow.cfg /airflow
+COPY _init.sh /airflow
+COPY _setup_gcp_connection.py /airflow
+COPY _decrypt_encrypted_variables.py /airflow
+COPY _bash_profile.sh /root/.bash_profile
+COPY _inputrc /root/.inputrc
