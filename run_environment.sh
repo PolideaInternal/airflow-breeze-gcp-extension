@@ -201,7 +201,7 @@ decrypt_all_variables() {
     echo
     echo "Decrypting encrypted variables"
     echo
-    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.yaml" && set +a && \
+    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
      python ${MY_DIR}/_decrypt_encrypted_variables.py> \
           ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
     echo
@@ -312,7 +312,7 @@ if [[ -f ${GCP_PROJECT_ID_FILE} ]]; then
     fi
 fi
 
-echo ${GCP_PROJECT_ID} >> ${GCP_PROJECT_ID_FILE}
+echo ${GCP_PROJECT_ID} > ${GCP_PROJECT_ID_FILE}
 
 
 # Check if the key directory exists
