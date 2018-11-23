@@ -143,7 +143,7 @@ docker run --rm -it -v \
 
 usage() {
       echo
-      echo "Usage ./run_environment.sh -a PROJECT_ID [FLAGS] -t <target>"
+      echo "Usage ./run_environment.sh -a GCP_PROJECT_ID [FLAGS] -t <target>"
       echo
       echo "Available general flags:"
       echo
@@ -161,7 +161,7 @@ usage() {
       echo
       echo "-r: Rebuild the incubator-airflow docker image locally"
       echo "-u: After rebuilding, also send image to GCR repository "\
-           " (gcr.io/<PROJECT_ID>/airflow-breeze)"
+           " (gcr.io/<GCP_PROJECT_ID>/airflow-breeze)"
       echo "-s: Skip reinstalling dependencies in the environment"
       echo "-c: Delete your local copy of the incubator-airflow docker image"
       echo
@@ -219,8 +219,8 @@ while getopts "ha:p:w:uscrIt:k:R:B:v:x:" opt; do
       exit 0
       ;;
     a)
-      PROJECT_ID="${OPTARG}"
-      IMAGE_NAME="gcr.io/${PROJECT_ID}/airflow-breeze"
+      GCP_PROJECT_ID="${OPTARG}"
+      IMAGE_NAME="gcr.io/${GCP_PROJECT_ID}/airflow-breeze"
       ;;
     v)
       PYTHON_VERSION="${OPTARG}"
@@ -245,7 +245,7 @@ while getopts "ha:p:w:uscrIt:k:R:B:v:x:" opt; do
       exit 1
       ;;
     c)
-      if [[ -z "${PROJECT_ID}" ]]; then
+      if [[ -z "${GCP_PROJECT_ID}" ]]; then
         usage
         echo
         echo "ERROR: You need to specify project id with -a before -c is used"
@@ -288,7 +288,7 @@ done
 
 #################### Validations
 
-if [[ -z "${PROJECT_ID:-}" ]]; then
+if [[ -z "${GCP_PROJECT_ID:-}" ]]; then
   usage
   echo
   echo "ERROR: Missing project id. Specify it with -a <project_id>"
@@ -296,23 +296,23 @@ if [[ -z "${PROJECT_ID:-}" ]]; then
   exit 1
 fi
 
-PROJECT_ID_FILE=${MY_DIR}/.project_id
+GCP_PROJECT_ID_FILE=${MY_DIR}/.project_id
 
-if [[ -f ${PROJECT_ID_FILE} ]]; then
-    OLD_PROJECT_ID=$(cat ${PROJECT_ID_FILE})
-    if [[ ${PROJECT_ID} != ${OLD_PROJECT_ID} ]]; then
+if [[ -f ${GCP_PROJECT_ID_FILE} ]]; then
+    OLD_GCP_PROJECT_ID=$(cat ${GCP_PROJECT_ID_FILE})
+    if [[ ${GCP_PROJECT_ID} != ${OLD_GCP_PROJECT_ID} ]]; then
         echo
         echo "The config directory checked out belongs to different project:" \
-             " ${OLD_PROJECT_ID}. "
-        echo "You are switching to project ${PROJECT_ID}. "
+             " ${OLD_GCP_PROJECT_ID}. "
+        echo "You are switching to project ${GCP_PROJECT_ID}. "
         echo
         ${MY_DIR}/confirm "This will remove config dir and re-download it."
         rm -rvf  "${AIRFLOW_BREEZE_CONFIG_DIR}"
-        rm -v ${PROJECT_ID_FILE}
+        rm -v ${GCP_PROJECT_ID_FILE}
     fi
 fi
 
-echo ${PROJECT_ID} >> ${PROJECT_ID_FILE}
+echo ${GCP_PROJECT_ID} >> ${GCP_PROJECT_ID_FILE}
 
 
 # Check if the key directory exists
@@ -320,7 +320,7 @@ if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
   echo
   echo "Automatically checking out airflow-breeze-config directory from your Google Project:"
   echo
-  gcloud source repos --project ${PROJECT_ID} clone airflow-breeze-config \
+  gcloud source repos --project ${GCP_PROJECT_ID} clone airflow-breeze-config \
     "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
      echo "You need to have have airflow-breeze-config repository created where you " \
           "should keep your variables and encrypted keys. " \
@@ -402,7 +402,7 @@ echo " Entering airflow development environment in docker"
 echo
 echo " PYTHON_VERSION             = ${PYTHON_VERSION}"
 echo
-echo " PROJECT                    = ${PROJECT_ID}"
+echo " PROJECT                    = ${GCP_PROJECT_ID}"
 echo
 echo " WORKSPACE                  = ${WORKSPACE_NAME}"
 echo " AIRFLOW_SOURCE_DIR         = ${FULL_AIRFLOW_SOURCE_DIR}"

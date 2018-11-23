@@ -27,15 +27,15 @@ It also allows you to share common configuration
 To run the container, use run_environment.sh. This will create a workspace with
 the name "default".
 
-`./run_environment.sh -a PROJECT_ID`
+`./run_environment.sh -a GCP_PROJECT_ID`
 
 If you want to use a different workspace, use the -w flag:
 
-`./run_environment.sh -a PROJECT_ID -w dataproc_workspace`
+`./run_environment.sh -a GCP_PROJECT_ID -w dataproc_workspace`
 
 If you want to forward a port for using the webserver, use the -p flag:
 
-`./run_environment.sh -a PROJECT_ID -w another_workspace -p 8080`
+`./run_environment.sh -a GCP_PROJECT_ID -w another_workspace -p 8080`
 
 For a full list of commands supported, use -h:
 
