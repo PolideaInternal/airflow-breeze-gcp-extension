@@ -6,3 +6,4 @@ output
 .idea
 test
 airflow-breeze-config
+.project_id

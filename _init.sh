@@ -32,7 +32,7 @@ export AIRFLOW_HOME=${AIRFLOW_HOME:=/airflow}
 
 AIRFLOW_BREEZE_CONFIG_DIR="${HOME}/airflow-breeze-config"
 if [[ -f ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env ]]; then
-  echo "Sourcing variables from ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env"
+  echo "Sourcing variables from ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.yaml"
   set -x
   source ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env
   set +x

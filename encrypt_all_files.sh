@@ -16,12 +16,22 @@ set -euo pipefail
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 AIRFLOW_BREEZE_CONFIG_DIR="${MY_DIR}/airflow-breeze-config"
 KEYS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/keys"
+NOTIFICATIONS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/notifications"
 
 pushd ${KEYS_DIR}
-for FILE in *.json *.pem;
+for FILE in *.json *.pem
 do
   gcloud kms encrypt --plaintext-file ${FILE} --ciphertext-file ${FILE}.enc \
      --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
      && echo Encrypted ${FILE}
 done
 popd
+
+pushd ${NOTIFICATIONS_DIR}
+for FILE in */variables.yaml
+do
+  gcloud kms encrypt --plaintext-file ${FILE} --ciphertext-file ${FILE}.enc \
+     --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+     && echo Encrypted ${FILE}
+done
+

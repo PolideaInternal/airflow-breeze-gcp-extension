@@ -201,7 +201,7 @@ decrypt_all_variables() {
     echo
     echo "Decrypting encrypted variables"
     echo
-    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.yaml" && set +a && \
      python ${MY_DIR}/_decrypt_encrypted_variables.py> \
           ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
     echo
@@ -296,6 +296,25 @@ if [[ -z "${PROJECT_ID:-}" ]]; then
   exit 1
 fi
 
+PROJECT_ID_FILE=${MY_DIR}/.project_id
+
+if [[ -f ${PROJECT_ID_FILE} ]]; then
+    OLD_PROJECT_ID=$(cat ${PROJECT_ID_FILE})
+    if [[ ${PROJECT_ID} != ${OLD_PROJECT_ID} ]]; then
+        echo
+        echo "The config directory checked out belongs to different project:" \
+             " ${OLD_PROJECT_ID}. "
+        echo "You are switching to project ${PROJECT_ID}. "
+        echo
+        ${MY_DIR}/confirm "This will remove config dir and re-download it."
+        rm -rvf  "${AIRFLOW_BREEZE_CONFIG_DIR}"
+        rm -v ${PROJECT_ID_FILE}
+    fi
+fi
+
+echo ${PROJECT_ID} >> ${PROJECT_ID_FILE}
+
+
 # Check if the key directory exists
 if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
   echo
@@ -381,16 +400,17 @@ echo "*************************************************************************"
 echo
 echo " Entering airflow development environment in docker"
 echo
-echo " PYTHON_VERSION      = ${PYTHON_VERSION}"
+echo " PYTHON_VERSION             = ${PYTHON_VERSION}"
 echo
-echo " PROJECT             = ${PROJECT_ID}"
+echo " PROJECT                    = ${PROJECT_ID}"
 echo
-echo " WORKSPACE           = ${WORKSPACE_NAME}"
-echo " AIRFLOW_SOURCE_DIR  = ${FULL_AIRFLOW_SOURCE_DIR}"
+echo " WORKSPACE                  = ${WORKSPACE_NAME}"
+echo " AIRFLOW_SOURCE_DIR         = ${FULL_AIRFLOW_SOURCE_DIR}"
+echo " AIRFLOW_BRREZE_CONFIG_DIR  = ${AIRFLOW_BREEZE_CONFIG_DIR}"
 echo
-echo " GCP_SERVICE_KEY     = ${KEY_NAME}"
+echo " GCP_SERVICE_KEY            = ${KEY_NAME}"
 echo
-echo " PORT FORWARDING     = ${DOCKER_PORT_ARG}"
+echo " PORT FORWARDING            = ${DOCKER_PORT_ARG}"
 echo
 echo "*************************************************************************"
 
