@@ -95,14 +95,14 @@ fi
 
 set +a
 
-DAGS_TO_TEST=${DAGS_TO_TEST:=""}
+AIRFLOW_BREEZE_DAGS_TO_TEST=${AIRFLOW_BREEZE_DAGS_TO_TEST:=""}
 
-if [[ ! -z ${DAGS_TO_TEST} ]]; then
+if [[ ! -z ${AIRFLOW_BREEZE_DAGS_TO_TEST} ]]; then
     echo
     echo "Creating symbolic links to tested DAGs"
     echo
 
-    for DAG_TO_TEST in ${DAGS_TO_TEST}
+    for DAG_TO_TEST in ${AIRFLOW_BREEZE_DAGS_TO_TEST}
     do
          for FILE in $(ls ${AIRFLOW_SOURCES}/${DAG_TO_TEST})
          do
