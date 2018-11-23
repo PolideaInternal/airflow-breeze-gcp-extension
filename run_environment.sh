@@ -191,7 +191,7 @@ decrypt_all_files() {
     echo
     echo "Decrypting all files"
     echo
-    ${MY_DIR}/_decrypt_all_files.sh
+    ${MY_DIR}/decrypt_all_files.sh
     echo
     echo "All files decrypted! "
     echo

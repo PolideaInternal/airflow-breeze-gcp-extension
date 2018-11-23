@@ -32,7 +32,7 @@ popd
 pushd ${NOTIFICATIONS_DIR}
 for FILE in */variables.yaml.enc
 do
-  gcloud kms decrypt --plaintext-file $(dirname ${FILE})$(basename ${FILE} .enc) \
+  gcloud kms decrypt --plaintext-file $(dirname ${FILE})/$(basename ${FILE} .enc) \
      --ciphertext-file ${FILE} \
      --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
      && echo Decrypted ${FILE}
