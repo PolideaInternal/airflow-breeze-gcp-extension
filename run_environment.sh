@@ -299,13 +299,13 @@ fi
 # Check if the key directory exists
 if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
   echo
-  echo "Automatically checking out Keys directory from your Google Project:"
+  echo "Automatically checking out airflow-breeze-config directory from your Google Project:"
   echo
-  gcloud source repos --project ${PROJECT_ID} clone airflow-breeze-config
-     "${AIRFLOW_BREEZE_CONFIG_DIR}" || \
+  gcloud source repos --project ${PROJECT_ID} clone airflow-breeze-config \
+    "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
      echo "You need to have have airflow-breeze-config repository created where you " \
           "should keep your variables and encrypted keys. " \
-          "Refer to README for details" && exit 1
+          "Refer to README for details" && exit 1)
   decrypt_all_files
   decrypt_all_variables
 fi
