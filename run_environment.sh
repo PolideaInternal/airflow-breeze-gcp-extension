@@ -1,25 +1,33 @@
 #!/usr/bin/env bash
-# Copyright 2018 Google LLC #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
 #
-#     https://www.apache.org/licenses/LICENSE-2.0
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Bash sanity settings (error on exit, complain for undefined vars, error when pipe fails)
 set -euo pipefail
 
+
+CMDNAME="$(basename -- "$0")"
+
 #################### Default python version
 
-PYTHON_VERSION=2
+PYTHON_VERSION=2.7
 
 #################### Whether re-installation should be skipped when entering docker
 SKIP_REINSTALL=False
@@ -34,6 +42,8 @@ DOCKER_PORT_ARG=""
 REBUILD=false
 # Whether to upload image to the GCR Repository
 UPLOAD_IMAGE=false
+# Whether to download image to the GCR Repository
+DOWNLOAD_IMAGE=false
 # Repository which is used to clone incubator-airflow from - wh
 # en it's not yet checked out
 AIRFLOW_REPOSITORY="https://github.com/apache/incubator-airflow.git"
@@ -63,8 +73,14 @@ build_local () {
     echo
     echo "Uploading built image to ${IMAGE_NAME}"
     echo
-    gcloud docker -- push ${IMAGE_NAME}
+    docker push ${IMAGE_NAME}
   fi
+}
+# Helper function for building the docker image locally.
+download () {
+  echo
+  echo "Download docker image '${IMAGE_NAME}'"
+  docker pull ${IMAGE_NAME}
 }
 
 # Builds a docker run command based on settings and evaluates it.
@@ -101,8 +117,8 @@ run_container () {
   #################### Docker command to use
   # String used to build the container run command.
   CMD="""\
-docker run --rm -it -v \
- ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}:/workspace \
+docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
+ -v ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}:/workspace \
  -v ${AIRFLOW_BREEZE_OUTPUT_DIR}:/airflow/output \
  -v ${AIRFLOW_BREEZE_CONFIG_DIR}:/root/airflow-breeze-config \
  --env-file=${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env \
@@ -125,50 +141,78 @@ docker run --rm -it -v \
 }
 
 usage() {
-      echo
-      echo "Usage ./run_environment.sh [-a <GCP_PROJECT_ID>] [FLAGS] -t <target>"
-      echo
-      echo "Available general flags:"
-      echo
-      echo "-h: Show this help message"
-      echo "-a: Your GCP Project Id (required)"
-      echo "-P: Python version [2, 3]"
-      echo "-w: Workspace name [default]"
-      echo "-k <key name>: Name of the GCP service account key to use "\
-           "(in '<WORKSPACE>/airflow-breeze-config/key' folder)"
-      echo "-p <port>: Optional - forward the webserver port to <port>"
-      echo
-      echo "Project, workspace and key are cached between runs. They only need"
-      echo "to be specified the first time you run ./run_environment.sh"
-      echo
-      echo "Flags for building the docker image locally:"
-      echo
-      echo "-r: Rebuild the incubator-airflow docker image locally"
-      echo "-u: After rebuilding, also send image to GCR repository "\
-           " (gcr.io/<GCP_PROJECT_ID>/airflow-breeze)"
-      echo "-s: Skip reinstalling dependencies in the environment"
-      echo "-c: Delete your local copy of the incubator-airflow docker image"
-      echo
-      echo "Flags for automated checkout of airflow-incubator project:"
-      echo
-      echo "-R"
-      echo "Repository to clone in case the workspace is "\
-           "not checked out yet [${AIRFLOW_REPOSITORY}]"
-      echo "-B"
-      echo "Branch to check out when cloning "\
-           "the repository [${AIRFLOW_REPOSITORY_BRANCH}]"
-      echo
-      echo "Running unit tests:"
-      echo
-      echo "-t <target>: Run the specified unit test target(s) "
-      echo
+      echo """
 
-      echo
-      echo "Running arbitrary commands"
-      echo
-      echo "-x <command>: Run the specified command via bash -c"
-      echo
+Usage ${CMDNAME} [FLAGS] [-t <TEST_TARGET | -x <COMMAND]
 
+-h, --help
+        Shows this help message.
+
+-p, --project <GCP_PROJECT_ID>
+        Your GCP Project Id (required for the first time). Cached between runs.
+
+-w, --workspace <WORKSPACE>
+        Workspace name [default]. Folder with this name is created and sources
+        are downloaded automatically if it does not exist. Cached between runs. [default]
+
+-k, --key-name <KEY_NAME>
+        Name of the GCP service account key to use by default. Keys are stored in
+        '<WORKSPACE>/airflow-breeze-config/key' folder. Cached between runs. If not
+        specified, you need to confirm that you want to enter the environment without
+        the key. You can also switch keys manually after entering the environment
+        via 'gcloud auth activate-service-account /root/airflow-breeze-config/keys/<KEY>'.
+
+-P, --python <PYTHON_VERSION>
+        Python virtualenv used by default. One of ('2.7', '3.5', '3.6').
+
+-f, --forward-port <PORT_NUMBER>
+        Optional - forward the port PORT_NUMBER to airflow's webserver (you must start
+        the server with 'airflow webserver' command manually).
+
+
+Managing the docker image of airflow-breeze:
+
+-r, --rebuild-image
+        Rebuild the incubator-airflow docker image locally
+
+-u, --upload-image
+        After rebuilding, also upload the image to GCR repository
+        (gcr.io/<GCP_PROJECT_ID>/airflow-breeze). Needs GCP_PROJECT_ID.
+
+-d, --download-image
+        Downloads the image from GCR repository (gcr.io/<GCP_PROJECT_ID>/airflow-breeze)
+        rather than build it locally. Needs GCP_PROJECT_ID.
+
+-c, --cleanup-image
+        Clean your local copy of the incubator-airflow docker image.
+        Needs GCP_PROJECT_ID.
+
+
+
+Automated checkout of airflow-incubator project:
+
+-R, --repository [REPOSITORY]
+        Repository to clone in case the workspace is not checked out yet
+        [${AIRFLOW_REPOSITORY}].
+-B, --branch [BRANCH]
+        Branch to check out when cloning the repository specified by -R. [master]
+
+
+Optional unit tests execution (mutually exclusive with running arbitrary command):
+
+-t, --test-target <TARGET>
+        Run the specified unit test target. There might be multiple
+        targets specified.
+
+
+
+Optional arbitrary command execution (mutually exclusive with running tests):
+
+-x, --execute <COMMAND>
+        Run the specified command. It is run via 'bash -c' so if you want to run command
+        with parameters they must be all passed as one COMMAND (enclosed with ' or \".
+
+"""
 }
 
 decrypt_all_files() {
@@ -195,40 +239,77 @@ decrypt_all_variables() {
 
 ####################  Parsing options/arguments
 
+set +e
+getopt -T
+GETOPT_RETVAL=$?
+set -e
+
+if [[ ${GETOPT_RETVAL} != 4 ]]; then
+    echo
+    if [[ $(uname -s) == 'Darwin' ]] ; then
+        echo "You are running ${CMDNAME} in OSX environment"
+        echo "The getopt version installed by OSX should be replaced by the GNU one"
+        echo
+        echo "Run 'brew install gnu-getopt'"
+        echo
+        echo "And link it to become default as suggested by brew by typing:"
+        echo "echo 'export PATH=\"/usr/local/opt/gnu-getopt/bin:\$PATH\"' >> ~/.bash_profile"
+        echo ". ~/.bash_profile"
+    else
+        echo "You do not have enhanced version of getopt binary in the path."
+        echo "Please install latest/GNU version."
+    fi
+    echo
+    exit 1
+fi
+
+PARAMS=$(getopt \
+    -o hp:w:k:P:f:rudcR:B:t:x: \
+    -l help,project:,workspace:,key:,python:,forward-port:,rebuild-image,upload-image,dowload-image,cleanup-image,repository:,branch:,test-target:,execute: \
+    --name "$CMDNAME" -- "$@")
+
+if [[ $? -ne 0 ]]
+then
+    usage
+fi
+
+eval set -- "${PARAMS}"
+unset PARAMS
+
 # Parse Flags
-while getopts "ha:p:w:uscrIt:k:R:B:P:x:" opt; do
-  case ${opt} in
-    h)
-      usage
-      exit 0
-      ;;
-    a)
-      AIRFLOW_BREEZE_PROJECT_ID="${OPTARG}"
-      IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze"
-      ;;
-    P)
-      PYTHON_VERSION="${OPTARG}"
-      ;;
-    w)
-      AIRFLOW_BREEZE_WORKSPACE_NAME="${OPTARG}"
-      ;;
-    u)
+while true
+do
+  case "${1}" in
+    -h|--help)
+      usage; exit 0 ;;
+    -p|--project)
+      AIRFLOW_BREEZE_PROJECT_ID="${2}"
+      IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze"; shift 2 ;;
+    -w|--workspace)
+      AIRFLOW_BREEZE_WORKSPACE_NAME="${2}"; shift 2 ;;
+    -k|--key-name)
+      AIRFLOW_BREEZE_KEY_NAME="${2}"; shift 2 ;;
+    -P|--python)
+      PYTHON_VERSION="${2}"; shift 2 ;;
+    -f|--forward-port)
+      DOCKER_PORT_ARG="-p 127.0.0.1:${2}:8080"; shift 2 ;;
+    -r|--rebuild-image)
+      REBUILD=true; shift ;;
+    -u|--upload-image)
       UPLOAD_IMAGE=true
-      ;;
-    s)
-      SKIP_REINSTALL=true
-      ;;
-    p)
-      DOCKER_PORT_ARG="-p 127.0.0.1:${OPTARG}:8080"
-      ;;
-    :)
-      usage
-      echo
-      echo "ERROR: Option -${OPTARG} requires an argument"
-      echo
-      exit 1
-      ;;
-    c)
+      if [[ ! -z ${DOWNLOAD_IMAGE} ]]; then
+         echo "Cannot specify 'upload' and 'download' at the same time"
+         exit 1
+      fi
+      shift ;;
+    -d|--download-image)
+      DOWNLOAD_IMAGE=true
+      if [[ ! -z ${UPLOAD_IMAGE} ]]; then
+         echo "Cannot specify 'upload' and 'download' at the same time"
+         exit 1
+      fi
+      shift ;;
+    -c|--cleanup-image)
       if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID}" ]]; then
         usage
         echo
@@ -240,28 +321,19 @@ while getopts "ha:p:w:uscrIt:k:R:B:P:x:" opt; do
       docker rmi ${IMAGE_NAME:-}
       exit 0
       ;;
-    r)
-      REBUILD=true
-      ;;
-    R)
-      AIRFLOW_REPOSITORY="${OPTARG}"
-      ;;
-    B)
-      AIRFLOW_REPOSITORY_BRANCH="${OPTARG}"
-      ;;
-    t)
-      DOCKER_TEST_ARG="${OPTARG}"
-      ;;
-    x)
-      DOCKER_COMMAND_ARG="${OPTARG}"
-      ;;
-    k)
-      AIRFLOW_BREEZE_KEY_NAME="${OPTARG}"
-      ;;
-    \?)
+    -R|--repository)
+      AIRFLOW_REPOSITORY="${2}"; shift 2 ;;
+    -B|--branch)
+      AIRFLOW_REPOSITORY_BRANCH="${2}"; shift 2 ;;
+    -t|--test-target)
+      DOCKER_TEST_ARG="${2}"; shift 2 ;;
+    -x|--execute)
+      DOCKER_COMMAND_ARG="${2}"; shift 2 ;;
+    --) shift ; break ;;
+    *)
       usage
       echo
-      echo "ERROR: Unknown option: -${OPTARG}"
+      echo "ERROR: Unknown argument ${1}"
       echo
       exit 1
       ;;
@@ -329,8 +401,8 @@ if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
   echo
   gcloud source repos --project ${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
     "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
-     echo "You need to have have airflow-breeze-config repository created where you " \
-          "should keep your variables and encrypted keys. " \
+     echo "You need to have have airflow-breeze-config repository created where you" \
+          "should keep your variables and encrypted keys." \
           "Refer to README for details" && exit 1)
 fi
 

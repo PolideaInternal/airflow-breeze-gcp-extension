@@ -1,16 +1,20 @@
-# Copyright 2018 Google LLC
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
-#     https://www.apache.org/licenses/LICENSE-2.0
+#   http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
 # Using official python runtime base image
 FROM ubuntu:18.04
@@ -77,11 +81,12 @@ RUN export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" \
     && apt-get clean
 
 
-# Install python 3.5 for airflow's compatibility,
+# Install python 3.6 for airflow's compatibility,
 # python-dev and necessary libraries to build all python packages
 RUN add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update \
-    && apt-get install  -y --no-install-recommends python3.5 python-dev python3.5-dev \
+    && apt-get install  -y --no-install-recommends \
+       python3.6 python3.6-dev python3.5 python3.5-dev python-dev \
        build-essential autoconf libtool libkrb5-dev \
     && apt-get clean
 
@@ -106,6 +111,7 @@ RUN pip install --upgrade pip setuptools virtualenvwrapper \
    && pip3 install --upgrade pip setuptools virtualenvwrapper
 
 RUN source /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
+    && mkvirtualenv -p /usr/bin/python3.6 airflow36  \
     && mkvirtualenv -p /usr/bin/python3.5 airflow35  \
     && mkvirtualenv -p /usr/bin/python2.7 airflow27
 
@@ -121,8 +127,14 @@ RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
+    && workon airflow36 \
+    && pip install -e .[devel_ci]
+
+RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
+    && cd temp_airflow \
     && workon airflow35 \
     && pip install -e .[devel_ci]
+
 RUN rm -rf temp_airflow
 
 RUN mkdir -pv /airflow/output
