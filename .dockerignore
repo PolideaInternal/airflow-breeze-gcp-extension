@@ -1,1 +1,9 @@
-polidea
+/*/incubator-airflow
+/*/airflow-breeze-config
+/*/.bash_history
+/*/.project_id
+/*/.key
+/*/output
+/.workspace
+*.iml
+.idea

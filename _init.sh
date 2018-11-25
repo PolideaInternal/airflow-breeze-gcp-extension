@@ -61,7 +61,7 @@ pip install -e .[devel_ci] \
   && sudo service postgresql start \
   && sudo -u postgres createuser root \
   && sudo -u postgres createdb airflow/airflow.db
-export AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=/root/airflow-breeze-config}
+export AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=${HOME}/airflow-breeze-config}
 export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
 export GCP_SERVICE_ACCOUNT_KEY_NAME=${GCP_SERVICE_ACCOUNT_KEY_NAME:="gcp_compute.json"}
 echo

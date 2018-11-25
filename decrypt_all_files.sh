@@ -14,11 +14,23 @@
 set -euo pipefail
 
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-AIRFLOW_BREEZE_CONFIG_DIR="${MY_DIR}/airflow-breeze-config"
-KEYS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/keys"
-NOTIFICATIONS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/notifications"
 
-pushd ${KEYS_DIR}
+#################### Workspace name #######################################################
+export AIRFLOW_BREEZE_WORKSPACE_FILE=${MY_DIR}/.workspace
+
+if [[ -z ${AIRFLOW_BREEZE_WORKSPACE_NAME:=""} && ! -f ${AIRFLOW_BREEZE_WORKSPACE_FILE} ]]; then
+    echo "Run ./run_environment.sh to choose the default workspace"
+    exit 1
+fi
+
+export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:=$(cat ${AIRFLOW_BREEZE_WORKSPACE_FILE} 2>/dev/null)}"
+
+#################### Directories #######################################################
+export AIRFLOW_BREEZE_CONFIG_DIR="${AIRFLOW_BREEZE_CONFIG_DIR:=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/airflow-breeze-config}"
+export AIRFLOW_BREEZE_KEYS_DIR="${AIRFLOW_BREEZE_KEYS_DIR:=${AIRFLOW_BREEZE_CONFIG_DIR}/keys}"
+export AIRFLOW_BREEZE_NOTIFICATIONS_DIR="${AIRFLOW_BREEZE_NOTIFICATIONS_DIR:=${AIRFLOW_BREEZE_CONFIG_DIR}/notifications}"
+
+pushd ${AIRFLOW_BREEZE_KEYS_DIR}
 for FILE in *.json.enc *.pem.enc
 do
   gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
@@ -29,7 +41,7 @@ chmod -v og-rw *
 popd
 
 
-pushd ${NOTIFICATIONS_DIR}
+pushd ${AIRFLOW_BREEZE_NOTIFICATIONS_DIR}
 for FILE in */variables.yaml.enc
 do
   gcloud kms decrypt --plaintext-file $(dirname ${FILE})/$(basename ${FILE} .enc) \

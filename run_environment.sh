@@ -24,20 +24,7 @@ PYTHON_VERSION=2
 #################### Whether re-installation should be skipped when entering docker
 SKIP_REINSTALL=False
 
-#################### Workspace settings
-
-# Directory where the workspaces are located. For proper usage, this is
-# the working directory.
-WORKSPACE_DIRECTORY="${MY_DIR}"
-# Name of the workspace. If not specified, default is "default".
-WORKSPACE_NAME="default"
-
-#################### Dir settings
-AIRFLOW_BREEZE_CONFIG_DIR="${MY_DIR}/airflow-breeze-config"
-KEYS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/keys"
-
 #################### Port forwarding settings
-
 # If port forwarding is used, holds the port argument to pass to docker run.
 DOCKER_PORT_ARG=""
 
@@ -64,10 +51,6 @@ DOCKER_TEST_ARG=""
 
 # Holds arbitrary command if the -x flag is used.
 DOCKER_COMMAND_ARG=""
-
-#################### Key variable
-# Name of the service account key (should be in the airflow-breeze-config/keys directory)
-KEY_NAME="gcp_compute.json"
 
 #################### Helper functions
 
@@ -119,15 +102,15 @@ run_container () {
   # String used to build the container run command.
   CMD="""\
 docker run --rm -it -v \
-  ${WORKSPACE_DIRECTORY}/${WORKSPACE_NAME}/incubator-airflow:/workspace \
- -v ${WORKSPACE_DIRECTORY}/airflow-breeze-config:/root/airflow-breeze-config \
- -v ${WORKSPACE_DIRECTORY}/output:/airflow/output \
+ ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}:/workspace \
+ -v ${AIRFLOW_BREEZE_OUTPUT_DIR}:/airflow/output \
+ -v ${AIRFLOW_BREEZE_CONFIG_DIR}:/root/airflow-breeze-config \
  --env-file=${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env \
  -e PYTHON_VERSION=${PYTHON_VERSION} \
  -e SKIP_REINSTALL=${SKIP_REINSTALL} \
  -e AIRFLOW_BREEZE_CONFIG_DIR=/root/airflow-breeze-config \
- -e GCP_SERVICE_ACCOUNT_KEY_NAME=${KEY_NAME} \
- -v ${WORKSPACE_DIRECTORY}/${WORKSPACE_NAME}/.bash_history:/root/.bash_history \
+ -e GCP_SERVICE_ACCOUNT_KEY_NAME=${AIRFLOW_BREEZE_KEY_NAME} \
+ -v ${AIRFLOW_BREEZE_BASH_HISTORY_FILE}:/root/.bash_history \
   ${DOCKER_PORT_ARG} ${IMAGE_NAME} /bin/bash -c \"/airflow/_init.sh ${POST_INIT_ARG}\"
 """
 
@@ -143,19 +126,20 @@ docker run --rm -it -v \
 
 usage() {
       echo
-      echo "Usage ./run_environment.sh -a GCP_PROJECT_ID [FLAGS] -t <target>"
+      echo "Usage ./run_environment.sh [-a <GCP_PROJECT_ID>] [FLAGS] -t <target>"
       echo
       echo "Available general flags:"
       echo
       echo "-h: Show this help message"
       echo "-a: Your GCP Project Id (required)"
-      echo "-v: Python version [2, 3]"
-      echo "-w: Workspace name [${WORKSPACE_NAME}]"
-      echo "-p <port>: Optional - forward the webserver port to <port>"
+      echo "-P: Python version [2, 3]"
+      echo "-w: Workspace name [default]"
       echo "-k <key name>: Name of the GCP service account key to use "\
-           "(in 'airflow-breeze-config/key' folder) [${KEYS_DIR}] "\
-           "- one of:"
-      echo "$(cd ${KEYS_DIR} && ls *.json)"
+           "(in '<WORKSPACE>/airflow-breeze-config/key' folder)"
+      echo "-p <port>: Optional - forward the webserver port to <port>"
+      echo
+      echo "Project, workspace and key are cached between runs. They only need"
+      echo "to be specified the first time you run ./run_environment.sh"
       echo
       echo "Flags for building the docker image locally:"
       echo
@@ -212,21 +196,21 @@ decrypt_all_variables() {
 ####################  Parsing options/arguments
 
 # Parse Flags
-while getopts "ha:p:w:uscrIt:k:R:B:v:x:" opt; do
+while getopts "ha:p:w:uscrIt:k:R:B:P:x:" opt; do
   case ${opt} in
     h)
       usage
       exit 0
       ;;
     a)
-      GCP_PROJECT_ID="${OPTARG}"
-      IMAGE_NAME="gcr.io/${GCP_PROJECT_ID}/airflow-breeze"
+      AIRFLOW_BREEZE_PROJECT_ID="${OPTARG}"
+      IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze"
       ;;
-    v)
+    P)
       PYTHON_VERSION="${OPTARG}"
       ;;
     w)
-      WORKSPACE_NAME="${OPTARG}"
+      AIRFLOW_BREEZE_WORKSPACE_NAME="${OPTARG}"
       ;;
     u)
       UPLOAD_IMAGE=true
@@ -245,7 +229,7 @@ while getopts "ha:p:w:uscrIt:k:R:B:v:x:" opt; do
       exit 1
       ;;
     c)
-      if [[ -z "${GCP_PROJECT_ID}" ]]; then
+      if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID}" ]]; then
         usage
         echo
         echo "ERROR: You need to specify project id with -a before -c is used"
@@ -272,7 +256,7 @@ while getopts "ha:p:w:uscrIt:k:R:B:v:x:" opt; do
       DOCKER_COMMAND_ARG="${OPTARG}"
       ;;
     k)
-      KEY_NAME="${OPTARG:-${KEY_NAME}}"
+      AIRFLOW_BREEZE_KEY_NAME="${OPTARG}"
       ;;
     \?)
       usage
@@ -284,96 +268,116 @@ while getopts "ha:p:w:uscrIt:k:R:B:v:x:" opt; do
   esac
 done
 
+#################### Workspace name #######################################################
+export AIRFLOW_BREEZE_WORKSPACE_FILE=${MY_DIR}/.workspace
+
+export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:=$(cat ${AIRFLOW_BREEZE_WORKSPACE_FILE} 2>/dev/null)}"
+export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:="default"}"
+
+#################### Directories #######################################################
+
+export AIRFLOW_BREEZE_CONFIG_DIR="${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/airflow-breeze-config"
+export AIRFLOW_BREEZE_KEYS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/keys"
+export AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/incubator-airflow
+export AIRFLOW_BREEZE_OUTPUT_DIR=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/output
+
+################## Files ###############################################################
+export AIRFLOW_BREEZE_BASH_HISTORY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history
+export AIRFLOW_BREEZE_PROJECT_ID_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.project_id
+export AIRFLOW_BREEZE_KEY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.key
+
+export AIRFLOW_BREEZE_KEY_NAME="${AIRFLOW_BREEZE_KEY_NAME:=$(cat ${AIRFLOW_BREEZE_KEY_FILE} 2>/dev/null)}"
 
 
-#################### Validations
+#################### Variable validations ##############################################
 
-if [[ -z "${GCP_PROJECT_ID:-}" ]]; then
-  usage
-  echo
-  echo "ERROR: Missing project id. Specify it with -a <project_id>"
-  echo
-  exit 1
+if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID:-}" ]]; then
+  if [[ -f ${AIRFLOW_BREEZE_PROJECT_ID_FILE} ]]; then
+     export AIRFLOW_BREEZE_PROJECT_ID=$(cat ${AIRFLOW_BREEZE_PROJECT_ID_FILE})
+  else
+    usage
+    echo
+    echo "ERROR: Missing project id. Specify it with -a <GCP_PROJECT_ID>"
+    echo
+    exit 1
+  fi
 fi
 
-GCP_PROJECT_ID_FILE=${MY_DIR}/.project_id
 
-if [[ -f ${GCP_PROJECT_ID_FILE} ]]; then
-    OLD_GCP_PROJECT_ID=$(cat ${GCP_PROJECT_ID_FILE})
-    if [[ ${GCP_PROJECT_ID} != ${OLD_GCP_PROJECT_ID} ]]; then
+if [[ -f ${AIRFLOW_BREEZE_PROJECT_ID_FILE} ]]; then
+    OLD_AIRFLOW_BREEZE_PROJECT_ID=$(cat ${AIRFLOW_BREEZE_PROJECT_ID_FILE})
+    if [[ ${AIRFLOW_BREEZE_PROJECT_ID} != ${OLD_AIRFLOW_BREEZE_PROJECT_ID} ]]; then
         echo
         echo "The config directory checked out belongs to different project:" \
-             " ${OLD_GCP_PROJECT_ID}. "
-        echo "You are switching to project ${GCP_PROJECT_ID}. "
+             " ${OLD_AIRFLOW_BREEZE_PROJECT_ID}. "
+        echo "You are switching to project ${AIRFLOW_BREEZE_PROJECT_ID}. "
         echo
         ${MY_DIR}/confirm "This will remove config dir and re-download it."
         rm -rvf  "${AIRFLOW_BREEZE_CONFIG_DIR}"
-        rm -v ${GCP_PROJECT_ID_FILE}
+        rm -v ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
     fi
 fi
 
-echo ${GCP_PROJECT_ID} > ${GCP_PROJECT_ID_FILE}
 
+################## Image name ###############################################################
+export AIRFLOW_BREEZE_IMAGE_NAME=${IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze"}
 
-# Check if the key directory exists
+################## Check out config dir #############################################
 if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
   echo
   echo "Automatically checking out airflow-breeze-config directory from your Google Project:"
   echo
-  gcloud source repos --project ${GCP_PROJECT_ID} clone airflow-breeze-config \
+  gcloud source repos --project ${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
     "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
      echo "You need to have have airflow-breeze-config repository created where you " \
           "should keep your variables and encrypted keys. " \
           "Refer to README for details" && exit 1)
-  decrypt_all_files
-  decrypt_all_variables
 fi
 
-FULL_AIRFLOW_SOURCE_DIR="${WORKSPACE_DIRECTORY}/${WORKSPACE_NAME}/incubator-airflow"
 
+################## Check out incubator airflow dir #############################################
+if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
+  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  echo
+  echo "The workspace ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR} does not exist."
+  echo
+  echo "Attempting to clone ${AIRFLOW_REPOSITORY} to ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
+  echo "and checking out ${AIRFLOW_REPOSITORY_BRANCH} branch"
+  echo
+  ${MY_DIR}/confirm "Cloning the repository"
+  echo
+  mkdir -p "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
+  && chmod 777 "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
+  && git clone "${AIRFLOW_REPOSITORY}" "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
+  && pushd "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
+  && git checkout "${AIRFLOW_REPOSITORY_BRANCH}" \
+  && popd
+fi
 
-if [[ ! -f "${KEYS_DIR}/${KEY_NAME}" ]]; then
+################## Check if key exists #############################################
+if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     echo
-    echo "Missing key file ${KEYS_DIR}/${KEY_NAME}"
+    echo "Missing key file ${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}"
     echo
     echo "Authentication to Google Cloud Platform will not work."
-    echo "You need to place service account json file in key directory if you want"
-    echo "to connect to Google Cloud Platform"
-
+    echo "You need to select the key once with -k <KEY_NAME>"
+    echo "Where <KEY_NAME> is one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
+    echo
     ${MY_DIR}/confirm "Proceeding without key"
     echo
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 fi
 
-# Check if the workspace directory exists
-if [[ ! -d "${MY_DIR}/${WORKSPACE_NAME}" ]]; then
-  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-  echo
-  echo "The workspace ${WORKSPACE_NAME} does not exist."
-  echo
-  echo "Attempting to clone ${AIRFLOW_REPOSITORY} to ${FULL_AIRFLOW_SOURCE_DIR}"
-  echo "and checking out ${AIRFLOW_REPOSITORY_BRANCH} branch"
-  echo
-  ${MY_DIR}/confirm "Cloning the repository"
-  echo
-  mkdir -p "${FULL_AIRFLOW_SOURCE_DIR}" \
-  && chmod 777 "${FULL_AIRFLOW_SOURCE_DIR}" \
-  && git clone "${AIRFLOW_REPOSITORY}" "${FULL_AIRFLOW_SOURCE_DIR}" \
-  && pushd "${FULL_AIRFLOW_SOURCE_DIR}" \
-  && git checkout "${AIRFLOW_REPOSITORY_BRANCH}" \
-  && popd
-fi
-
-# Check if the .bash_history file exists
-if [[ ! -f "${MY_DIR}/${WORKSPACE_NAME}/.bash_history" ]]; then
+################## Check if .bash_history file exists #############################
+if [[ ! -f "${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history" ]]; then
   echo
   echo "Creating empty .bash_history"
-  touch ${MY_DIR}/${WORKSPACE_NAME}/.bash_history
+  touch ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history
   echo
 fi
 
-# Establish an image for the environment
+################## Build image locally #############################
 if [[ "${REBUILD}" == "true" ]]; then
   echo
   echo "Rebuilding local image as requested"
@@ -386,6 +390,7 @@ elif [[ -z "$(docker images -q "${IMAGE_NAME}" 2> /dev/null)" ]]; then
   build_local
 fi
 
+################## Decrypt all files and variables #############################
 decrypt_all_files
 decrypt_all_variables
 
@@ -402,16 +407,23 @@ echo " Entering airflow development environment in docker"
 echo
 echo " PYTHON_VERSION             = ${PYTHON_VERSION}"
 echo
-echo " PROJECT                    = ${GCP_PROJECT_ID}"
+echo " PROJECT                    = ${AIRFLOW_BREEZE_PROJECT_ID}"
 echo
-echo " WORKSPACE                  = ${WORKSPACE_NAME}"
-echo " AIRFLOW_SOURCE_DIR         = ${FULL_AIRFLOW_SOURCE_DIR}"
-echo " AIRFLOW_BRREZE_CONFIG_DIR  = ${AIRFLOW_BREEZE_CONFIG_DIR}"
+echo " WORKSPACE                  = ${AIRFLOW_BREEZE_WORKSPACE_NAME}"
 echo
-echo " GCP_SERVICE_KEY            = ${KEY_NAME}"
+echo " AIRFLOW_SOURCE_DIR         = ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
+echo " AIRFLOW_BREEZE_KEYS_DIR    = ${AIRFLOW_BREEZE_KEYS_DIR}"
+echo " AIRFLOW_BREEZE_CONFIG_DIR  = ${AIRFLOW_BREEZE_CONFIG_DIR}"
+echo " AIRFLOW_BREEZE_OUTPUT_DIR  = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
+echo
+echo " GCP_SERVICE_KEY            = ${AIRFLOW_BREEZE_KEY_NAME}"
 echo
 echo " PORT FORWARDING            = ${DOCKER_PORT_ARG}"
 echo
 echo "*************************************************************************"
+
+echo ${AIRFLOW_BREEZE_WORKSPACE_NAME} > ${AIRFLOW_BREEZE_WORKSPACE_FILE}
+echo ${AIRFLOW_BREEZE_PROJECT_ID} > ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
+echo ${AIRFLOW_BREEZE_KEY_NAME} > ${AIRFLOW_BREEZE_KEY_FILE}
 
 run_container
