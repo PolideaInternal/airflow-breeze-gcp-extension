@@ -18,10 +18,12 @@
 """Decrypts all encrypted variables from environment"""
 import os
 import subprocess
+import sys
 
 ENCRYPTED_SUFFIX = "_ENCRYPTED"
 
 if __name__ == '__main__':
+    project_id = sys.argv[1]
     for key, val in os.environ.items():
         if key.endswith(ENCRYPTED_SUFFIX):
             decrypted_key = key[:-len(ENCRYPTED_SUFFIX)]
@@ -31,5 +33,6 @@ if __name__ == '__main__':
                  'gcloud kms decrypt --plaintext-file=- '
                  '--ciphertext-file=- --location=global '
                  '--keyring=incubator-airflow '
-                 '--key=service_accounts_crypto_key'.format(val)])
+                 '--project={} '
+                 '--key=service_accounts_crypto_key'.format(val, project_id)])
             print("{}={}".format(decrypted_key, decrypted_val))

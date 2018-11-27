@@ -1,0 +1,22 @@
+steps:
+- name: 'gcr.io/cloud-builders/gcloud'
+  dir: 'notifications/slack'
+  args:
+  - 'kms'
+  - 'decrypt'
+  - '--plaintext-file'
+  - 'variables.yaml'
+  - '--ciphertext-file'
+  - 'variables.yaml.enc'
+  - '--location=global'
+  - '--keyring=incubator-airflow'
+  - '--key=service_accounts_crypto_key'
+- name: 'gcr.io/cloud-builders/gcloud'
+  dir: 'notifications/slack'
+  entrypoint: '/bin/bash'
+  args:
+    - '-c'
+    - >
+       gcloud beta functions deploy --env-vars-file=variables.yaml slack_notify
+       --stage-bucket polidea-airflow_cloudbuild --trigger-topic cloud-builds |
+       grep -v HOOK

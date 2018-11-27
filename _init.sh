@@ -74,6 +74,7 @@ pip install -e .[devel_ci] \
 export AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=${HOME}/airflow-breeze-config}
 export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
 export GCP_SERVICE_ACCOUNT_KEY_NAME=${GCP_SERVICE_ACCOUNT_KEY_NAME:="gcp_compute.json"}
+export GCP_PROJECT_ID=${GCP_PROJECT_ID:"wrong-project"}
 echo
 echo "Activating service account with ${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
 echo
@@ -83,15 +84,14 @@ if [[ -e "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" ]]; th
   # Allow application-default login
   echo "export GOOGLE_APPLICATION_CREDENTIALS=${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" >> ${HOME}/.bashrc
   gcloud auth activate-service-account \
-       --key-file="${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
+       --key-file="${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" \
+       --project=${GCP_PROJECT_ID}
   ACCOUNT=$(cat "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" | \
       python -c 'import json, sys; info=json.load(sys.stdin); print(info["client_email"])')
-  PROJECT=$(cat "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" | \
-      python -c 'import json, sys; info=json.load(sys.stdin); print(info["project_id"])')
   gcloud config set account "${ACCOUNT}"
-  gcloud config set project "${PROJECT}"
+  gcloud config set project "${GCP_PROJECT_ID}"
   airflow initdb
-  python /airflow/_setup_gcp_connection.py "${PROJECT}"
+  python /airflow/_setup_gcp_connection.py "${GCP_PROJECT_ID}"
 else
   echo "WARNING: No key ${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME} found."\
        " Running without service account credentials."
@@ -116,7 +116,7 @@ if [[ ! -z ${AIRFLOW_BREEZE_DAGS_TO_TEST} ]]; then
     do
          for FILE in $(ls ${AIRFLOW_SOURCES}/${DAG_TO_TEST})
          do
-            FILE_BASENAME=$(basename $FILE)
+            FILE_BASENAME=$(basename ${FILE})
             ln -svf "${FILE}" "${AIRFLOW_HOME}"/dags/${FILE_BASENAME}
          done
     done

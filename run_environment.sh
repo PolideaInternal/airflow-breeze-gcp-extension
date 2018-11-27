@@ -214,29 +214,6 @@ Optional arbitrary command execution (mutually exclusive with running tests):
 
 """
 }
-
-decrypt_all_files() {
-    echo
-    echo "Decrypting all files"
-    echo
-    ${MY_DIR}/decrypt_all_files.sh
-    echo
-    echo "All files decrypted! "
-    echo
-}
-
-decrypt_all_variables() {
-    echo
-    echo "Decrypting encrypted variables"
-    echo
-    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
-     python ${MY_DIR}/_decrypt_encrypted_variables.py> \
-          ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
-    echo
-    echo "Variables decrypted! "
-    echo
-}
-
 ####################  Parsing options/arguments
 
 set +e
@@ -369,7 +346,7 @@ if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID:-}" ]]; then
   else
     usage
     echo
-    echo "ERROR: Missing project id. Specify it with -a <GCP_PROJECT_ID>"
+    echo "ERROR: Missing project id. Specify it with -p <GCP_PROJECT_ID>"
     echo
     exit 1
   fi
@@ -397,19 +374,19 @@ export AIRFLOW_BREEZE_IMAGE_NAME=${IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_I
 ################## Check out config dir #############################################
 if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
   echo
-  echo "Automatically checking out airflow-breeze-config directory from your Google Project:"
+  echo "Automatically checking out airflow-breeze-config directory from your Google Cloud Repository:"
   echo
-  gcloud source repos --project ${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
+  gcloud source repos --project=${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
     "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
-     echo "You need to have have airflow-breeze-config repository created where you" \
-          "should keep your variables and encrypted keys." \
-          "Refer to README for details" && exit 1)
+     echo && echo "Bootstraping airflow-breeze-config as it was not found in GCR" && echo &&
+     python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
+       --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
+       --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME} )
 fi
 
 
 ################## Check out incubator airflow dir #############################################
 if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
-  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
   echo
   echo "The workspace ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR} does not exist."
   echo
@@ -428,7 +405,6 @@ fi
 
 ################## Check if key exists #############################################
 if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     echo
     echo "Missing key file ${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}"
     echo
@@ -438,7 +414,6 @@ if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
     echo
     ${MY_DIR}/confirm "Proceeding without key"
     echo
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 fi
 
 ################## Check if .bash_history file exists #############################
@@ -462,9 +437,32 @@ elif [[ -z "$(docker images -q "${IMAGE_NAME}" 2> /dev/null)" ]]; then
   build_local
 fi
 
-################## Decrypt all files and variables #############################
-decrypt_all_files
-decrypt_all_variables
+################## Decrypt all files variables #############################
+pushd ${AIRFLOW_BREEZE_KEYS_DIR}
+FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
+echo "Decrypting all files '${FILES}'"
+for FILE in ${FILES}
+do
+  gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
+     --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+     --project=${AIRFLOW_BREEZE_PROJECT_ID} \
+        && echo Decrypted ${FILE}
+done
+chmod -v og-rw *
+popd
+echo
+echo "All files decrypted! "
+echo
+################## Decrypt all variables #############################
+echo
+echo "Decrypting encrypted variables"
+echo
+(set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+ python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
+      ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
+echo
+echo "Variables decrypted! "
+echo
 
 echo
 echo "Decrypted variables (only visible when you run local environment!):"
