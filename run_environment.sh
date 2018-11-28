@@ -44,6 +44,8 @@ REBUILD=false
 UPLOAD_IMAGE=false
 # Whether to download image to the GCR Repository
 DOWNLOAD_IMAGE=false
+# Wheteher to cleanup local image
+CLEANUP_IMAGE=false
 # Repository which is used to clone incubator-airflow from - wh
 # en it's not yet checked out
 AIRFLOW_REPOSITORY="https://github.com/apache/incubator-airflow.git"
@@ -81,6 +83,12 @@ download () {
   echo
   echo "Download docker image '${IMAGE_NAME}'"
   docker pull ${IMAGE_NAME}
+}
+
+cleanup () {
+  echo "Removing local image ${IMAGE_NAME} ..."
+  docker rmi ${IMAGE_NAME}
+  exit 0
 }
 
 # Builds a docker run command based on settings and evaluates it.
@@ -260,8 +268,7 @@ do
     -h|--help)
       usage; exit 0 ;;
     -p|--project)
-      AIRFLOW_BREEZE_PROJECT_ID="${2}"
-      IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze"; shift 2 ;;
+      AIRFLOW_BREEZE_PROJECT_ID="${2}" ;;
     -w|--workspace)
       AIRFLOW_BREEZE_WORKSPACE_NAME="${2}"; shift 2 ;;
     -k|--key-name)
@@ -274,30 +281,25 @@ do
       REBUILD=true; shift ;;
     -u|--upload-image)
       UPLOAD_IMAGE=true
-      if [[ ! ${DOWNLOAD_IMAGE} != "false" ]]; then
-         echo "Cannot specify 'upload' and 'download' at the same time"
+      if [[ ! ${DOWNLOAD_IMAGE} != "false" || ${CLEANUP_IMAGE} != "false" ]]; then
+         echo "Cannot specify two of 'upload', 'download' or 'cleanup' at the same time"
          exit 1
       fi
       shift ;;
     -d|--download-image)
       DOWNLOAD_IMAGE=true
-      if [[ ${UPLOAD_IMAGE} != "false" ]]; then
-         echo "Cannot specify 'upload' and 'download' at the same time"
+      if [[ ${UPLOAD_IMAGE} != "false" || ${CLEANUP_IMAGE} != "false" ]]; then
+         echo "Cannot specify two of 'upload', 'download', 'cleanup' at the same time"
          exit 1
       fi
       shift ;;
     -c|--cleanup-image)
-      if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID}" ]]; then
-        usage
-        echo
-        echo "ERROR: You need to specify project id with -a before -c is used"
-        echo
-        exit 1
+      if [[ ${UPLOAD_IMAGE} != "false" || ${DOWNLOAD_IMAGE} != "false" ]]; then
+         echo "Cannot specify two of 'upload', 'download', 'cleanup' at the same time"
+         exit 1
       fi
-      echo "Removing local image..."
-      docker rmi ${IMAGE_NAME:-}
-      exit 0
-      ;;
+      CLEANUP_IMAGE=true
+      shift ;;
     -R|--repository)
       AIRFLOW_REPOSITORY="${2}"; shift 2 ;;
     -B|--branch)
@@ -339,7 +341,7 @@ export AIRFLOW_BREEZE_PROJECT_ID_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}
 export AIRFLOW_BREEZE_KEY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.key
 export AIRFLOW_BREEZE_KEY_NAME="${AIRFLOW_BREEZE_KEY_NAME:=$(cat ${AIRFLOW_BREEZE_KEY_FILE} 2>/dev/null)}"
 
-#################### Variable validations ##############################################
+#################### Check project id presence ##############################################
 
 if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID:-}" ]]; then
   if [[ -f ${AIRFLOW_BREEZE_PROJECT_ID_FILE} ]]; then
@@ -353,6 +355,16 @@ if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID:-}" ]]; then
   fi
 fi
 
+
+#################### Setup image name ##############################################
+IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze:${AIRFLOW_REPOSITORY_BRANCH}"
+
+#################### Cleanup image if requested ########################################
+if [[ "${CLEANUP_IMAGE}" == "true" ]]; then
+    cleanup
+fi
+
+#################### Check if project id changed ########################################
 if [[ -f ${AIRFLOW_BREEZE_PROJECT_ID_FILE} ]]; then
     OLD_AIRFLOW_BREEZE_PROJECT_ID=$(cat ${AIRFLOW_BREEZE_PROJECT_ID_FILE})
     if [[ ${AIRFLOW_BREEZE_PROJECT_ID} != ${OLD_AIRFLOW_BREEZE_PROJECT_ID} ]]; then
@@ -368,7 +380,7 @@ if [[ -f ${AIRFLOW_BREEZE_PROJECT_ID_FILE} ]]; then
 fi
 
 ################## Image name ###############################################################
-export AIRFLOW_BREEZE_IMAGE_NAME=${IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze"}
+export AIRFLOW_BREEZE_IMAGE_NAME=${IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze:${AIRFLOW_REPOSITORY_BRANCH}"}
 
 ################## Check out incubator airflow dir #############################################
 if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
