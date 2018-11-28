@@ -323,6 +323,9 @@ export AIRFLOW_BREEZE_WORKSPACE_FILE=${MY_DIR}/.workspace
 export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:=$(cat ${AIRFLOW_BREEZE_WORKSPACE_FILE} 2>/dev/null)}"
 export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:="default"}"
 
+# Cache workspace value for subsequent executions
+echo ${AIRFLOW_BREEZE_WORKSPACE_NAME} > ${AIRFLOW_BREEZE_WORKSPACE_FILE}
+
 #################### Directories #######################################################
 
 export AIRFLOW_BREEZE_CONFIG_DIR="${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/airflow-breeze-config"
@@ -334,9 +337,7 @@ export AIRFLOW_BREEZE_OUTPUT_DIR=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/outp
 export AIRFLOW_BREEZE_BASH_HISTORY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history
 export AIRFLOW_BREEZE_PROJECT_ID_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.project_id
 export AIRFLOW_BREEZE_KEY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.key
-
 export AIRFLOW_BREEZE_KEY_NAME="${AIRFLOW_BREEZE_KEY_NAME:=$(cat ${AIRFLOW_BREEZE_KEY_FILE} 2>/dev/null)}"
-
 
 #################### Variable validations ##############################################
 
@@ -352,7 +353,6 @@ if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID:-}" ]]; then
   fi
 fi
 
-
 if [[ -f ${AIRFLOW_BREEZE_PROJECT_ID_FILE} ]]; then
     OLD_AIRFLOW_BREEZE_PROJECT_ID=$(cat ${AIRFLOW_BREEZE_PROJECT_ID_FILE})
     if [[ ${AIRFLOW_BREEZE_PROJECT_ID} != ${OLD_AIRFLOW_BREEZE_PROJECT_ID} ]]; then
@@ -367,23 +367,8 @@ if [[ -f ${AIRFLOW_BREEZE_PROJECT_ID_FILE} ]]; then
     fi
 fi
 
-
 ################## Image name ###############################################################
 export AIRFLOW_BREEZE_IMAGE_NAME=${IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze"}
-
-################## Check out config dir #############################################
-if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
-  echo
-  echo "Automatically checking out airflow-breeze-config directory from your Google Cloud Repository:"
-  echo
-  gcloud source repos --project=${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
-    "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
-     echo && echo "Bootstraping airflow-breeze-config as it was not found in GCR" && echo &&
-     python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
-       --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
-       --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME} )
-fi
-
 
 ################## Check out incubator airflow dir #############################################
 if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
@@ -393,15 +378,67 @@ if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
   echo "Attempting to clone ${AIRFLOW_REPOSITORY} to ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
   echo "and checking out ${AIRFLOW_REPOSITORY_BRANCH} branch"
   echo
-  ${MY_DIR}/confirm "Cloning the repository"
-  echo
+  if [[ "${AIRFLOW_REPOSITORY}" == "https://github.com/apache/incubator-airflow.git" ]]; then
+      ${MY_DIR}/confirm "Are you sure you want to checkout apache repository and not " \
+                        "your own fork"
+      echo
+  fi
   mkdir -p "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && chmod 777 "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && git clone "${AIRFLOW_REPOSITORY}" "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && pushd "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && git checkout "${AIRFLOW_REPOSITORY_BRANCH}" \
   && popd
+  if [[ "${AIRFLOW_REPOSITORY}" != "https://github.com/apache/incubator-airflow.git" ]]; then
+      echo
+      echo
+      echo "Please connect the GitHub fork of your repositories to Cloud Build:"
+      echo
+      echo "Both airflow-breeze and incubator-airflow should be connected"
+      echo "They both have cloudbuild.yaml in their root dir and they are ready to be connected"
+      echo
+      echo "Use https://github.com/apps/google-cloud-build to configure it."
+      echo
+      echo "More details about connecting your GitHub repos to Cloud Build can be found"
+      echo "at https://cloud.google.com/cloud-build/docs/run-builds-on-github ."
+      echo
+      echo "After you do it, you will have to push the airflow-breeze and after it completes"
+      echo "incubator-airflow in order to trigger cloud builds."
+      echo
+      echo "You can check status of your builds via "
+      echo "https://console.cloud.google.com/cloud-build/builds?project=${AIRFLOW_BREEZE_PROJECT_ID} ."
+      echo
+      ${MY_DIR}/confirm "Please confirm that you connected both repos"
+      echo
+   fi
 fi
+
+################## Check out config dir #############################################
+if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
+  echo
+  echo "Automatically checking out airflow-breeze-config directory from your Google Cloud Repository:"
+  echo
+  gcloud source repos --project=${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
+    "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
+     echo && echo "Bootstrapping airflow-breeze-config as it was not found in GCR" && echo &&
+     python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
+       --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
+       --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME} )
+
+     echo
+     echo "In case you want to deploy notification cloud functions automatically please "\
+          "create build trigger."
+     echo "Trigger should be created for airflow-breeze-config project."
+     echo "Use https://console.cloud.google.com/cloud-build/triggers/add?project=${AIRFLOW_BREEZE_PROJECT_ID}"
+     echo
+     echo "!!!! Make sure to wse notifications/slack/cloudbuild.yaml as build configurations you chose."
+     echo
+     ${MY_DIR}/confirm "OK To proceed"
+fi
+
+
+# Cache project value for subsequent executions
+echo ${AIRFLOW_BREEZE_PROJECT_ID} > ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
 
 ################## Check if key exists #############################################
 if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
@@ -416,6 +453,9 @@ if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
     echo
 fi
 
+# Cache key value for subsequent executions
+echo ${AIRFLOW_BREEZE_KEY_NAME} > ${AIRFLOW_BREEZE_KEY_FILE}
+
 ################## Check if .bash_history file exists #############################
 if [[ ! -f "${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history" ]]; then
   echo
@@ -423,6 +463,7 @@ if [[ ! -f "${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history" ]]; then
   touch ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history
   echo
 fi
+
 
 ################## Build image locally #############################
 if [[ "${REBUILD}" == "true" ]]; then
@@ -492,8 +533,5 @@ echo " PORT FORWARDING            = ${DOCKER_PORT_ARG}"
 echo
 echo "*************************************************************************"
 
-echo ${AIRFLOW_BREEZE_WORKSPACE_NAME} > ${AIRFLOW_BREEZE_WORKSPACE_FILE}
-echo ${AIRFLOW_BREEZE_PROJECT_ID} > ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
-echo ${AIRFLOW_BREEZE_KEY_NAME} > ${AIRFLOW_BREEZE_KEY_FILE}
 
 run_container

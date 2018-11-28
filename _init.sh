@@ -74,7 +74,7 @@ pip install -e .[devel_ci] \
 export AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=${HOME}/airflow-breeze-config}
 export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
 export GCP_SERVICE_ACCOUNT_KEY_NAME=${GCP_SERVICE_ACCOUNT_KEY_NAME:="gcp_compute.json"}
-export GCP_PROJECT_ID=${GCP_PROJECT_ID:"wrong-project"}
+export GCP_PROJECT_ID=${GCP_PROJECT_ID:="wrongproject"}
 echo
 echo "Activating service account with ${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
 echo

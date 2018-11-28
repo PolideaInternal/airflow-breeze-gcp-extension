@@ -30,12 +30,14 @@ from os.path import dirname, basename
 MY_DIR = dirname(__file__)
 
 BOOTSTRAP_CONFIG_DIR = os.path.join(MY_DIR, "config")
+CONFIG_REPO_NAME = "airflow-breeze-config"
+
 
 TARGET_DIR = None
 
 
 def check_if_config_exists(workspace_dir):
-    config_dir = os.path.join(workspace_dir, "airflow-breeze-config")
+    config_dir = os.path.join(workspace_dir, CONFIG_REPO_NAME)
     if os.path.isdir(config_dir):
         raise Exception("Configuration folder {} already exists. Remove it to "
                         "bootstrap it from scratch".format(config_dir))
@@ -237,13 +239,30 @@ def create_all_service_accounts():
             assign_service_account_appspot_role_to_service_account(service_account_email)
 
 
+def create_and_push_google_cloud_repository(directory, repo_name):
+    subprocess.call(["gcloud", "source", "repos", "create", repo_name,
+                     '--project={}'.format(project_id)])
+    subprocess.call(['git', 'config', '--global',
+                     'credential.https://source.developers.google.com.helper'
+                     'gcloud.sh'], cwd=directory)
+    subprocess.call(['git', 'init'], cwd=directory)
+    subprocess.call(['git', 'remote', 'add', 'google',
+                     'https://source.developers.google.com/p/{}/r/{}'.format(
+                         project_id, repo_name)], cwd=directory)
+    subprocess.call(['git', 'add', '.'], cwd=directory)
+    subprocess.call(['git', 'commit', '-m', 'Initial commit of bootstrapped repository'],
+                    cwd=directory)
+    subprocess.call(['git', 'push', '--all', 'google'], cwd=directory)
+
+
 if __name__ == '__main__':
 
     if sys.version_info < (3, 0):
         sys.stdout.write("Sorry, bootstrap requires Python 3.x\n")
         sys.exit(1)
 
-    parser = argparse.ArgumentParser(description='Bootstraps airflow-breeze-config.')
+    parser = argparse.ArgumentParser(description='Bootstraps {} repository.'.
+                                     format(CONFIG_REPO_NAME))
     parser.add_argument('--workspace', '-w', required=True,
                         help='Path to the workspace where the dir should be bootstrapped')
     parser.add_argument('--gcp-project-id', '-p', required=True,
@@ -263,6 +282,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     enable_service('cloudkms.googleapis.com')
+    enable_service('cloudbuild.googleapis.com')
 
     create_keyring_and_keys()
 
@@ -288,3 +308,5 @@ if __name__ == '__main__':
                     ignore=ignore_dirs, copy_function=copy_files)
 
     create_all_service_accounts()
+
+    create_and_push_google_cloud_repository(TARGET_DIR, CONFIG_REPO_NAME)
