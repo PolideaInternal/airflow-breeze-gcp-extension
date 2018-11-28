@@ -274,14 +274,14 @@ do
       REBUILD=true; shift ;;
     -u|--upload-image)
       UPLOAD_IMAGE=true
-      if [[ ! -z ${DOWNLOAD_IMAGE} ]]; then
+      if [[ ! ${DOWNLOAD_IMAGE} != "false" ]]; then
          echo "Cannot specify 'upload' and 'download' at the same time"
          exit 1
       fi
       shift ;;
     -d|--download-image)
       DOWNLOAD_IMAGE=true
-      if [[ ! -z ${UPLOAD_IMAGE} ]]; then
+      if [[ ${UPLOAD_IMAGE} != "false" ]]; then
          echo "Cannot specify 'upload' and 'download' at the same time"
          exit 1
       fi
@@ -464,6 +464,10 @@ if [[ ! -f "${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history" ]]; then
   echo
 fi
 
+################## Download image #############################
+if [[ "${DOWNLOAD_IMAGE}" == "true" ]]; then
+  download
+fi
 
 ################## Build image locally #############################
 if [[ "${REBUILD}" == "true" ]]; then
@@ -477,6 +481,7 @@ elif [[ -z "$(docker images -q "${IMAGE_NAME}" 2> /dev/null)" ]]; then
   echo
   build_local
 fi
+
 
 ################## Decrypt all files variables #############################
 pushd ${AIRFLOW_BREEZE_KEYS_DIR}
