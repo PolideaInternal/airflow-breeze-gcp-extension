@@ -22,7 +22,6 @@ MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Bash sanity settings (error on exit, complain for undefined vars, error when pipe fails)
 set -euo pipefail
 
-
 CMDNAME="$(basename -- "$0")"
 
 #################### Default python version
@@ -268,7 +267,7 @@ do
     -h|--help)
       usage; exit 0 ;;
     -p|--project)
-      AIRFLOW_BREEZE_PROJECT_ID="${2}" ;;
+      AIRFLOW_BREEZE_PROJECT_ID="${2}"; shift 2 ;;
     -w|--workspace)
       AIRFLOW_BREEZE_WORKSPACE_NAME="${2}"; shift 2 ;;
     -k|--key-name)
