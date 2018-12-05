@@ -298,6 +298,9 @@ if __name__ == '__main__':
                        'https://hooks.slack.com/services/...'
                        '(ENTER will skip Slack notification): ')
 
+    github_organization = input('Provide your GitHub user/organization name:')
+
+    PARAMETERS['GITHUB_ORGANIZATION'] = github_organization
     PARAMETERS['ENCRYPTED_PASSWORD'] = encrypted_password
     PARAMETERS['POSTGRES_IP'] = postgres_ip
     PARAMETERS['MYSQL_IP'] = mysql_ip
