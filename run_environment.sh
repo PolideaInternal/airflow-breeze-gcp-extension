@@ -27,6 +27,7 @@ CMDNAME="$(basename -- "$0")"
 #################### Default python version
 
 PYTHON_VERSION=2.7
+APACHE_AIRFLOW_REPO=https://github.com/apache/incubator-airflow.git
 
 #################### Whether re-installation should be skipped when entering docker
 SKIP_REINSTALL=False
@@ -46,8 +47,9 @@ DOWNLOAD_IMAGE=false
 # Wheteher to cleanup local image
 CLEANUP_IMAGE=false
 # Repository which is used to clone incubator-airflow from - wh
-# en it's not yet checked out
-AIRFLOW_REPOSITORY="https://github.com/apache/incubator-airflow.git"
+# en it's not yet checked out (default is the Apache one)
+
+AIRFLOW_REPOSITORY="${APACHE_AIRFLOW_REPO}"
 # Branch of the repository to check out when it's first cloned
 AIRFLOW_REPOSITORY_BRANCH="master"
 # Whether pip install should be executed when entering docker
@@ -318,6 +320,7 @@ do
   esac
 done
 
+
 #################### Workspace name #######################################################
 export AIRFLOW_BREEZE_WORKSPACE_FILE=${MY_DIR}/.workspace
 
@@ -389,9 +392,11 @@ if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
   echo "Attempting to clone ${AIRFLOW_REPOSITORY} to ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
   echo "and checking out ${AIRFLOW_REPOSITORY_BRANCH} branch"
   echo
-  if [[ "${AIRFLOW_REPOSITORY}" == "https://github.com/apache/incubator-airflow.git" ]]; then
-      ${MY_DIR}/confirm "Are you sure you want to checkout apache repository and not " \
-                        "your own fork"
+  if [[ "${AIRFLOW_REPOSITORY}" == "${APACHE_AIRFLOW_REPO}" ]]; then
+      echo
+      echo "Usually you should specify your own fork of the main apache repository."
+      echo "Rather than ${APACHE_AIRFLOW_REPO}"
+      ${MY_DIR}/confirm "Are you sure you want to checkout apache repository and not your own fork"
       echo
   fi
   mkdir -p "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
@@ -400,7 +405,7 @@ if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
   && pushd "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && git checkout "${AIRFLOW_REPOSITORY_BRANCH}" \
   && popd
-  if [[ "${AIRFLOW_REPOSITORY}" != "https://github.com/apache/incubator-airflow.git" ]]; then
+  if [[ "${AIRFLOW_REPOSITORY}" != "${APACHE_AIRFLOW_REPO}" ]]; then
       echo
       echo
       echo "Please connect the GitHub fork of your repositories to Cloud Build:"

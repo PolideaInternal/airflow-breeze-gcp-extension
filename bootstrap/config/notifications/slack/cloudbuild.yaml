@@ -15,8 +15,8 @@ steps:
   dir: 'notifications/slack'
   entrypoint: '/bin/bash'
   args:
-    - '-c'
-    - >
-       gcloud beta functions deploy --env-vars-file=variables.yaml slack_notify
-       --stage-bucket polidea-airflow_cloudbuild --trigger-topic cloud-builds |
-       grep -v HOOK
+  - '-c'
+  - >
+    gcloud beta functions deploy --env-vars-file=variables.yaml slack_notify
+    --stage-bucket polidea-airflow_cloudbuild --trigger-topic cloud-builds
+    --runtime nodejs8 | grep -v HOOK

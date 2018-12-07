@@ -26,12 +26,10 @@ import os
 import shutil
 from os.path import dirname, basename
 
-
 MY_DIR = dirname(__file__)
 
 BOOTSTRAP_CONFIG_DIR = os.path.join(MY_DIR, "config")
 CONFIG_REPO_NAME = "airflow-breeze-config"
-
 
 TARGET_DIR = None
 
@@ -76,7 +74,6 @@ def copy_files(source_path, destination_path):
 
 PARAMETERS = {}
 
-
 SERVICE_ACCOUNTS = [
     dict(keyfile='gcp_bigtable.json',
          account_name='gcp-bigtable-account',
@@ -116,6 +113,13 @@ KEYRING = 'incubator-airflow'
 KEY = 'service_accounts_crypto_key'
 
 
+def logged_call(command, cwd=os.getcwd(), stderr=None, stdout=None):
+    print()
+    print("> Running command: '{}' in directory {}".format(' '.join(command), cwd))
+    print()
+    return subprocess.call(command, cwd=cwd, stderr=stderr, stdout=stdout)
+
+
 def create_keyring_and_keys():
     print()
     print("Creating keyring and keys ... ")
@@ -129,14 +133,14 @@ def create_keyring_and_keys():
     if keyrings and len(keyrings) > 0:
         print("The keyring is already created. Not creating it again!")
     else:
-        subprocess.call(['gcloud', 'kms', 'keyrings', 'create', KEYRING,
-                         '--project={}'.format(project_id),
-                         '--location=global'])
-        subprocess.call(['gcloud', 'kms', 'keys', 'create', KEY,
-                         '--project={}'.format(project_id),
-                         '--keyring={}'.format(KEYRING),
-                         '--purpose=encryption',
-                         '--location=global'])
+        logged_call(['gcloud', 'kms', 'keyrings', 'create', KEYRING,
+                     '--project={}'.format(project_id),
+                     '--location=global'])
+        logged_call(['gcloud', 'kms', 'keys', 'create', KEY,
+                     '--project={}'.format(project_id),
+                     '--keyring={}'.format(KEYRING),
+                     '--purpose=encryption',
+                     '--location=global'])
 
 
 def encrypt_value(value):
@@ -153,7 +157,7 @@ def encrypt_value(value):
 
 def encrypt_file(file):
     print("Encrypting file {}".format(file))
-    return subprocess.call(
+    return logged_call(
         [
             'gcloud', 'kms', 'encrypt',
             '--plaintext-file={}'.format(file),
@@ -171,7 +175,7 @@ def assign_service_account_appspot_role_to_service_account(service_account_email
           "service account user role for service account {}".
           format(project_id, service_account_email))
     with open(os.devnull, 'w') as FNULL:
-        return subprocess.call(
+        return logged_call(
             [
                 'gcloud', 'iam', 'service-accounts', 'add-iam-policy-binding',
                 '{}@appspot.gserviceaccount.com'.format(project_id),
@@ -185,7 +189,7 @@ def assign_service_account_appspot_role_to_service_account(service_account_email
 def assign_role_to_service_account(service_account_email, role):
     print("Assigning {} role to {}".format(role, service_account_email))
     with open(os.devnull, 'w') as FNULL:
-        return subprocess.call(
+        return logged_call(
             [
                 'gcloud', 'projects', 'add-iam-policy-binding', project_id,
                 '--member', 'serviceAccount:{}'.format(service_account_email),
@@ -196,9 +200,9 @@ def assign_role_to_service_account(service_account_email, role):
 
 def enable_service(service):
     print("Enabling service {}".format(service))
-    subprocess.call(['gcloud', 'services', 'enable',
-                     service,
-                     '--project={}'.format(project_id)])
+    logged_call(['gcloud', 'services', 'enable',
+                 service,
+                 '--project={}'.format(project_id)])
 
 
 def create_all_service_accounts():
@@ -217,42 +221,62 @@ def create_all_service_accounts():
             account_name, project_id)
         key_file = os.path.join(TARGET_DIR, "keys", keyfile)
         with open(os.devnull, 'w') as FNULL:
-            subprocess.call(['gcloud', 'iam', 'service-accounts',
-                             'delete', service_account_email,
-                             '--project={}'.format(project_id),
-                             '--quiet'], stderr=FNULL)
-            subprocess.call(['gcloud', 'iam', 'service-accounts',
-                             'create', account_name,
-                             '--display-name',
-                             service_account_display_name,
-                             '--project={}'.format(project_id)])
-            subprocess.call(['gcloud', 'iam', 'service-accounts', 'keys',
-                             'create', key_file,
-                             '--iam-account', service_account_email,
-                             '--project={}'.format(project_id)])
+            logged_call(['gcloud', 'iam', 'service-accounts',
+                         'delete', service_account_email,
+                         '--project={}'.format(project_id),
+                         '--quiet'], stderr=FNULL)
+            logged_call(['gcloud', 'iam', 'service-accounts',
+                         'create', account_name,
+                         '--display-name',
+                         service_account_display_name,
+                         '--project={}'.format(project_id)])
+            logged_call(['gcloud', 'iam', 'service-accounts', 'keys',
+                         'create', key_file,
+                         '--iam-account', service_account_email,
+                         '--project={}'.format(project_id)])
         encrypt_file(key_file)
         for service in services:
             enable_service(service)
         for role in roles:
-            assign_role_to_service_account(service_account_email, role)
+            assign_role_to_service_account(service_account_email, role
+                                           )
         if appspot_service_account_impersonation:
             assign_service_account_appspot_role_to_service_account(service_account_email)
 
 
 def create_and_push_google_cloud_repository(directory, repo_name):
-    subprocess.call(["gcloud", "source", "repos", "create", repo_name,
-                     '--project={}'.format(project_id)])
-    subprocess.call(['git', 'config', '--global',
-                     'credential.https://source.developers.google.com.helper'
-                     'gcloud.sh'], cwd=directory)
-    subprocess.call(['git', 'init'], cwd=directory)
-    subprocess.call(['git', 'remote', 'add', 'google',
-                     'https://source.developers.google.com/p/{}/r/{}'.format(
-                         project_id, repo_name)], cwd=directory)
-    subprocess.call(['git', 'add', '.'], cwd=directory)
-    subprocess.call(['git', 'commit', '-m', 'Initial commit of bootstrapped repository'],
-                    cwd=directory)
-    subprocess.call(['git', 'push', '--all', 'google'], cwd=directory)
+    logged_call(["gcloud", "source", "repos", "create", repo_name,
+                 '--project={}'.format(project_id)])
+    logged_call(['git', 'config', '--global',
+                 'credential.https://source.developers.google.com.helper'
+                 'gcloud.sh'], cwd=directory)
+    logged_call(['git', 'init'], cwd=directory)
+    logged_call(['git', 'remote', 'add', 'google',
+                 'https://source.developers.google.com/p/{}/r/{}'.format(
+                     project_id, repo_name)], cwd=directory)
+    logged_call(['git', 'add', '.'], cwd=directory)
+    logged_call(['git', 'commit', '-m', 'Initial commit of bootstrapped repository'],
+                cwd=directory)
+    logged_call(['git', 'push', '--all', 'google'], cwd=directory)
+
+
+def create_bucket(bucket_name):
+    logged_call(["gsutil", "mb", '-c', 'multi_regional', '-p', project_id,
+                 "gs://{}".format(bucket_name)])
+    logged_call(["gsutil", "iam", "ch", "allUsers:objectViewer",
+                 "gs://{}".format(bucket_name)])
+
+
+def start_section(section):
+    print()
+    print("#" * 100)
+    print("#  " + section)
+    print("#" * 100)
+
+
+def end_section():
+    print("#" * 100)
+    print()
 
 
 if __name__ == '__main__':
@@ -281,10 +305,17 @@ if __name__ == '__main__':
     if confirm != 'y':
         sys.exit(1)
 
+    start_section("Enabling KMS and Cloud Build for project {}".format(project_id))
     enable_service('cloudkms.googleapis.com')
     enable_service('cloudbuild.googleapis.com')
-
+    end_section()
+    start_section("Creating keyring and key for encryption for project {}".
+                  format(project_id))
     create_keyring_and_keys()
+    end_section()
+
+    start_section("Provide manual parameters for the bootstrap process of {}".
+                  format(project_id))
 
     PARAMETERS['GCP_PROJECT_ID'] = project_id
     password = input("Password to use for Postgres and MySql database: ")
@@ -309,7 +340,17 @@ if __name__ == '__main__':
         IGNORE_SLACK = True
     shutil.copytree(BOOTSTRAP_CONFIG_DIR, TARGET_DIR,
                     ignore=ignore_dirs, copy_function=copy_files)
+    end_section()
 
+    start_section("Creating all service accounts for project {}".format(project_id))
     create_all_service_accounts()
+    end_section()
 
+    start_section("Creating build bucket fpr project {}".format(project_id))
+    create_bucket("{}-builds".format(project_id))
+    end_section()
+
+    start_section("Creating airflow-breeze-config project in Google Cloud Repository "
+                  "for project {}".format(project_id))
     create_and_push_google_cloud_repository(TARGET_DIR, CONFIG_REPO_NAME)
+    end_section()
