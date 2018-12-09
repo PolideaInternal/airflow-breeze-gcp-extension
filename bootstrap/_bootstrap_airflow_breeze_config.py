@@ -18,6 +18,8 @@
 #
 """Bootstraps an empty airflow-breeze-config project"""
 import json
+import random
+import string
 import subprocess
 import sys
 
@@ -31,18 +33,30 @@ MY_DIR = dirname(__file__)
 BOOTSTRAP_CONFIG_DIR = os.path.join(MY_DIR, "config")
 CONFIG_REPO_NAME = "airflow-breeze-config"
 
-TARGET_DIR = None
-
-
-def check_if_config_exists(workspace_dir):
-    config_dir = os.path.join(workspace_dir, CONFIG_REPO_NAME)
-    if os.path.isdir(config_dir):
-        raise Exception("Configuration folder {} already exists. Remove it to "
-                        "bootstrap it from scratch".format(config_dir))
-    return config_dir
-
-
+TARGET_DIR = ''
 IGNORE_SLACK = False
+KEYRING = 'incubator-airflow'
+KEY = 'service_accounts_crypto_key'
+BUILD_BUCKET_SUFFIX = '-builds'
+
+VARIABLES = {}
+
+
+def get_config_dir(workspace_dir):
+    global TARGET_DIR
+    TARGET_DIR = os.path.join(workspace_dir, CONFIG_REPO_NAME)
+
+
+def assert_config_directory_does_not_exist():
+    if os.path.isdir(TARGET_DIR):
+        raise Exception("Configuration folder {} already exists. Remove it to "
+                        "bootstrap it from scratch".format(TARGET_DIR))
+
+
+def assert_config_directory_exists():
+    if not os.path.isdir(TARGET_DIR):
+        raise Exception("Configuration folder {} does not exist. Please "
+                        "re-run run_environment.sh to check it out".format(TARGET_DIR))
 
 
 def ignore_dirs(src, names):
@@ -52,7 +66,9 @@ def ignore_dirs(src, names):
     return ignored
 
 
-def copy_files(source_path, destination_path):
+def copy_file(source_path, destination_path):
+    print('Copying file {} -> {}'.format(
+        source_path, destination_path))
     shutil.copy2(source_path, destination_path)
 
     # We do not use Jinja2 or another templating system because we want to make
@@ -62,17 +78,15 @@ def copy_files(source_path, destination_path):
     # The '$' we use Jinja2 form of template variables '{{ VARIABLE }}'
     # Note strict spaces (!) instead and replace it with built-in replace mechanism
 
-    if source_path.endswith('.yaml') or source_path.endswith('.env'):
+    if os.path.isfile(source_path):
         with open(source_path, "r") as input_file:
             content = input_file.read()
-        for key, value in PARAMETERS.items():
+        for key, value in VARIABLES.items():
             string_to_replace = '{{ ' + key + ' }}'
             content = content.replace(string_to_replace, value)
         with open(destination_path, "w") as output_file:
             output_file.write(content)
 
-
-PARAMETERS = {}
 
 SERVICE_ACCOUNTS = [
     dict(keyfile='gcp_bigtable.json',
@@ -108,9 +122,6 @@ SERVICE_ACCOUNTS = [
          services=['spanner.googleapis.com'],
          appspot_service_account_impersonation=False),
 ]
-
-KEYRING = 'incubator-airflow'
-KEY = 'service_accounts_crypto_key'
 
 
 def logged_call(command, cwd=os.getcwd(), stderr=None, stdout=None):
@@ -152,7 +163,19 @@ def encrypt_value(value):
             '--location=global --keyring={} '
             '--key={} --project={} | base64'.format(value, KEYRING, KEY, project_id)
         ]
-    ).decode()
+    ).decode("utf-8")
+
+
+def decrypt_value(value):
+    return subprocess.check_output(
+        [
+            '/bin/bash', '-c',
+            'echo -n {} | base64 --decode | '
+            'gcloud kms decrypt --plaintext-file=- --ciphertext-file=- '
+            '--location=global --keyring={} '
+            '--key={} --project={}'.format(value, KEYRING, KEY, project_id)
+        ]
+    ).decode("utf-8")
 
 
 def encrypt_file(file):
@@ -170,8 +193,8 @@ def encrypt_file(file):
     )
 
 
-def assign_service_account_appspot_role_to_service_account(service_account_email):
-    print("Assigning default appspot account {}@appspot.gserviceaccount.com "
+def bind_service_account_user_role_for_appspot_account(service_account_email):
+    print("Binding default appspot account {}@appspot.gserviceaccount.com with "
           "service account user role for service account {}".
           format(project_id, service_account_email))
     with open(os.devnull, 'w') as FNULL:
@@ -186,7 +209,7 @@ def assign_service_account_appspot_role_to_service_account(service_account_email
         )
 
 
-def assign_role_to_service_account(service_account_email, role):
+def bind_role_to_service_account(service_account_email, role):
     print("Assigning {} role to {}".format(role, service_account_email))
     with open(os.devnull, 'w') as FNULL:
         return logged_call(
@@ -196,6 +219,28 @@ def assign_role_to_service_account(service_account_email, role):
                 '--role', role
             ], stdout=FNULL
         )
+
+
+def bind_roles_to_cloudbuild():
+    project_number = subprocess.check_output(
+        [
+            'gcloud', 'projects', 'describe', project_id,
+            '--format', 'value(projectNumber)'
+        ]
+    ).decode("utf-8").strip()
+    bind_service_account_user_role_for_appspot_account(
+        '{}@cloudbuild.gserviceaccount.com'.format(project_number))
+    logged_call([
+        'gcloud', 'kms', 'keys', 'add-iam-policy-binding',
+        KEY, '--location=global', '--keyring={}'.format(KEYRING),
+        '--project={}'.format(project_id),
+        '--member=serviceAccount:{}@cloudbuild.gserviceaccount.com'.
+        format(project_number),
+        '--role=roles/cloudkms.cryptoKeyDecrypter'
+    ])
+    bind_role_to_service_account("{}@cloudbuild.gserviceaccount.com"
+                                 .format(project_number),
+                                 'roles/cloudfunctions.developer')
 
 
 def enable_service(service):
@@ -238,29 +283,37 @@ def create_all_service_accounts():
         for service in services:
             enable_service(service)
         for role in roles:
-            assign_role_to_service_account(service_account_email, role
-                                           )
+            bind_role_to_service_account(service_account_email, role
+                                         )
         if appspot_service_account_impersonation:
-            assign_service_account_appspot_role_to_service_account(service_account_email)
+            bind_service_account_user_role_for_appspot_account(service_account_email)
 
 
-def create_and_push_google_cloud_repository(directory, repo_name):
-    logged_call(["gcloud", "source", "repos", "create", repo_name,
-                 '--project={}'.format(project_id)])
+def configure_google_cloud_source_repository_helper():
     logged_call(['git', 'config', '--global',
                  'credential.https://source.developers.google.com.helper'
-                 'gcloud.sh'], cwd=directory)
+                 'gcloud.sh'])
+
+
+def create_google_cloud_config_repository(directory, repo_name):
+    logged_call(["gcloud", "source", "repos", "create", repo_name,
+                 '--project={}'.format(project_id)])
     logged_call(['git', 'init'], cwd=directory)
     logged_call(['git', 'remote', 'add', 'google',
                  'https://source.developers.google.com/p/{}/r/{}'.format(
                      project_id, repo_name)], cwd=directory)
+
+
+def commit_and_push_google_cloud_config_repository(directory, initial=True):
     logged_call(['git', 'add', '.'], cwd=directory)
-    logged_call(['git', 'commit', '-m', 'Initial commit of bootstrapped repository'],
+    logged_call(['git', 'commit', '-m',
+                 'Initial commit of bootstrapped repository' if initial
+                 else 'Updating service keys and configuration'],
                 cwd=directory)
     logged_call(['git', 'push', '--all', 'google'], cwd=directory)
 
 
-def create_bucket(bucket_name):
+def create_build_bucket(bucket_name):
     logged_call(["gsutil", "mb", '-c', 'multi_regional', '-p', project_id,
                  "gs://{}".format(bucket_name)])
     logged_call(["gsutil", "iam", "ch", "allUsers:objectViewer",
@@ -279,36 +332,149 @@ def end_section():
     print()
 
 
+def read_parameter(key, description):
+    global VARIABLES
+    default_value = VARIABLES.get(key)
+    if default_value:
+        description += '[{}] ?: '.format(default_value)
+    else:
+        description += '?: '
+    res = input(description)
+    if res == '':
+        VARIABLES[key] = default_value
+    else:
+        VARIABLES[key] = res
+
+
+def get_random_password():
+    random.seed()
+    return ''.join(random.choice(string.ascii_uppercase + string.digits)
+                   for _ in range(10))
+
+
+def read_manual_parameters():
+    global IGNORE_SLACK
+    VARIABLES['GCP_PROJECT_ID'] = project_id
+    VARIABLES['GCSQL_MYSQL_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
+    VARIABLES['GCSQL_POSTGRES_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
+    read_parameter('BUILD_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
+                   'artifacts are stored (bucket name: {}<SUFFIX>)'.format(project_id))
+    read_parameter("GCSQL_POSTGRES_PUBLIC_IP", "IP of the Postgres database")
+    read_parameter("GCSQL_MYSQL_PUBLIC_IP", "IP of the MySQL database")
+    read_parameter('GITHUB_ORGANIZATION', 'Your GitHub user/organization name')
+    setup_slack_notifications = input("Setup Slack notifications ? (y/n)")
+    if setup_slack_notifications == 'y' or setup_slack_notifications == 'Y':
+        read_parameter('SLACK_HOOK', 'Slack hook to post Cloud Build status - usually '
+                       'https://hooks.slack.com/services/... ')
+        VARIABLES['SLACK_HOOK_ENCRYPTED'] = encrypt_value(VARIABLES.get('SLACK_HOOK'))
+    else:
+        IGNORE_SLACK = True
+
+
+def copy_configuration_directory():
+    if not os.path.isdir(TARGET_DIR):
+        shutil.copytree(BOOTSTRAP_CONFIG_DIR, TARGET_DIR,
+                        ignore=ignore_dirs, copy_function=copy_file)
+    else:
+        # overwrite files in the config dir
+        for file in os.listdir(BOOTSTRAP_CONFIG_DIR):
+            if os.path.isfile(os.path.join(BOOTSTRAP_CONFIG_DIR, file)):
+                copy_file(os.path.join(BOOTSTRAP_CONFIG_DIR, file),
+                          os.path.join(TARGET_DIR, file))
+        if not os.path.isdir(os.path.join(TARGET_DIR, 'notifications')):
+            # only copy notifications folder if not already copied!
+            shutil.copytree(os.path.join(BOOTSTRAP_CONFIG_DIR, "notifications"),
+                            os.path.join(TARGET_DIR, "notifications"),
+                            ignore=ignore_dirs, copy_function=copy_file)
+        else:
+            # Otherwise loop all notification subdirs and copy them as needed
+            for directory in os.listdir(os.path.join(BOOTSTRAP_CONFIG_DIR,
+                                                     'notifications')):
+                source_notification_dir = os.path.join(BOOTSTRAP_CONFIG_DIR,
+                                                       "notifications", directory)
+                target_notification_dir = os.path.join(TARGET_DIR,
+                                                       "notifications", directory)
+                if IGNORE_SLACK and directory == 'slack':
+                    continue
+                if not os.path.isdir(target_notification_dir):
+                    # Copy the whole dir if it does not exist
+                    shutil.copytree(source_notification_dir, target_notification_dir,
+                                    ignore=ignore_dirs, copy_function=copy_file)
+                else:
+                    # Overwrite files in notifications folder if already exists
+                    for file in os.listdir(source_notification_dir):
+                        if os.path.isfile(os.path.join(source_notification_dir, file)):
+                            copy_file(os.path.join(source_notification_dir, file),
+                                      os.path.join(target_notification_dir, file))
+
+
+def encrypt_notification_configuration_files():
+    for root, dirs, files in os.walk(os.path.join(TARGET_DIR)):
+        for file in files:
+            if file.endswith("variables.yaml"):
+                encrypt_file(os.path.join(root, file))
+
+
 if __name__ == '__main__':
 
     if sys.version_info < (3, 0):
         sys.stdout.write("Sorry, bootstrap requires Python 3.x\n")
         sys.exit(1)
 
-    parser = argparse.ArgumentParser(description='Bootstraps {} repository.'.
-                                     format(CONFIG_REPO_NAME))
+    parser = argparse.ArgumentParser(description='Bootstraps GCP project for '
+                                                 'Airflow Breeze.')
     parser.add_argument('--workspace', '-w', required=True,
-                        help='Path to the workspace where the dir should be bootstrapped')
+                        help='Path to the workspace')
     parser.add_argument('--gcp-project-id', '-p', required=True,
                         help='GCP project id')
 
     args = parser.parse_args()
 
-    TARGET_DIR = check_if_config_exists(args.workspace)
-
     project_id = args.gcp_project_id
 
-    confirm = input("\nBootstrapping project '{}'. \n\n"
-                    "NOTE! This is a destructive operation if you already "
-                    "bootstrapped it before. \n\nAre you sure (y/n) ?: ".
-                    format(project_id))
-    if confirm != 'y':
+    create_new_config_repo = logged_call(['gcloud', 'source', 'repos', 'describe',
+                                          '--project', project_id,
+                                          CONFIG_REPO_NAME]) != 0
+
+    get_config_dir(args.workspace)
+
+    VARIABLES['VARIABLES_YAML'] = 'variables.yaml'
+    VARIABLES['BUILD_BUCKET_SUFFIX'] = BUILD_BUCKET_SUFFIX
+
+    if create_new_config_repo:
+        assert_config_directory_does_not_exist()
+        confirm = input("\nBootstrapping project '{}' from scratch. \n\n"
+                        "This will create {} repository!"
+                        "\n\nAre you sure (y/n) ?: ".
+                        format(project_id, CONFIG_REPO_NAME))
+    else:
+        assert_config_directory_exists()
+        # Read current values from environment to retain their values
+        VARIABLES.update(os.environ)
+        if VARIABLES.get('SLACK_HOOK_ENCRYPTED'):
+            VARIABLES['SLACK_HOOK'] = decrypt_value(VARIABLES.get('SLACK_HOOK_ENCRYPTED'))
+
+        confirm = input("\nThe project '{}' is already bootstrapped.\n\n"
+                        "The {} repository is already created and checked out.\n\n"
+                        "If you answer y, the script will recreate all keys, passwords "
+                        "and re-enable all services and \n "
+                        "overwrite configuration files (retaining existing values)\n\n "
+                        "This is useful in case you added new services or want to "
+                        "regenerate the secrets \nor configuration files."
+                        "\n\nAre you sure (y/n) ?: ".
+                        format(project_id, CONFIG_REPO_NAME))
+    if confirm != 'y' and confirm != 'Y':
         sys.exit(1)
 
     start_section("Enabling KMS and Cloud Build for project {}".format(project_id))
     enable_service('cloudkms.googleapis.com')
     enable_service('cloudbuild.googleapis.com')
     end_section()
+
+    start_section('Binding roles to Cloud Build service account')
+    bind_roles_to_cloudbuild()
+    end_section()
+
     start_section("Creating keyring and key for encryption for project {}".
                   format(project_id))
     create_keyring_and_keys()
@@ -317,40 +483,41 @@ if __name__ == '__main__':
     start_section("Provide manual parameters for the bootstrap process of {}".
                   format(project_id))
 
-    PARAMETERS['GCP_PROJECT_ID'] = project_id
-    password = input("Password to use for Postgres and MySql database: ")
+    read_manual_parameters()
+    end_section()
 
-    encrypted_password = encrypt_value(password)
+    start_section("Copying files (with overwritten values) in configuration dir")
+    copy_configuration_directory()
+    end_section()
 
-    postgres_ip = input("IP of the Postgres database: ")
-    mysql_ip = input("IP of the MySQL database: ")
-
-    slack_hook = input('Provide slack hook to post Cloud Build status - usually '
-                       'https://hooks.slack.com/services/...'
-                       '(ENTER will skip Slack notification): ')
-
-    github_organization = input('Provide your GitHub user/organization name:')
-
-    PARAMETERS['GITHUB_ORGANIZATION'] = github_organization
-    PARAMETERS['ENCRYPTED_PASSWORD'] = encrypted_password
-    PARAMETERS['POSTGRES_IP'] = postgres_ip
-    PARAMETERS['MYSQL_IP'] = mysql_ip
-
-    if not slack_hook:
-        IGNORE_SLACK = True
-    shutil.copytree(BOOTSTRAP_CONFIG_DIR, TARGET_DIR,
-                    ignore=ignore_dirs, copy_function=copy_files)
+    start_section("Encrypting variables.yaml files in notifications directory")
+    encrypt_notification_configuration_files()
     end_section()
 
     start_section("Creating all service accounts for project {}".format(project_id))
     create_all_service_accounts()
     end_section()
 
-    start_section("Creating build bucket fpr project {}".format(project_id))
-    create_bucket("{}-builds".format(project_id))
+    start_section("Creating build bucket for project {}".format(project_id))
+    create_build_bucket("{}{}".format(project_id, BUILD_BUCKET_SUFFIX))
     end_section()
 
-    start_section("Creating airflow-breeze-config project in Google Cloud Repository "
-                  "for project {}".format(project_id))
-    create_and_push_google_cloud_repository(TARGET_DIR, CONFIG_REPO_NAME)
+    start_section("Configuring Cloud Source Repository authentication")
+    configure_google_cloud_source_repository_helper()
+    end_section()
+
+    if create_new_config_repo:
+        start_section("Creating {} project in Google Cloud Repository for project {}".
+                      format(CONFIG_REPO_NAME, project_id))
+        create_google_cloud_config_repository(TARGET_DIR, CONFIG_REPO_NAME)
+        end_section()
+
+    start_section("Pushing files to {} in Google Cloud Repository for project {}".format(
+                  CONFIG_REPO_NAME, project_id))
+    logged_call(['git', 'status'], cwd=TARGET_DIR)
+    logged_call(['git', 'diff'], cwd=TARGET_DIR)
+    res = input("Confirm commiting and pushing the airflow-breeze-config [y/n] ? ")
+    if res == 'y' or res == 'Y':
+        commit_and_push_google_cloud_config_repository(TARGET_DIR,
+                                                       initial=create_new_config_repo)
     end_section()

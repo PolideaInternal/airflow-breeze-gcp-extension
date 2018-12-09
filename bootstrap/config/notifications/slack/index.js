@@ -78,7 +78,7 @@ async function get_test_suite_status(build, test_suite) {
 async function createSlackMessage(build) {
     let color = 'warning';
     if (build.status === "SUCCESS") {
-        color = 'green'
+        color = 'good'
     } else if (build.status === 'FAILURE' || build.status === 'INTERNAL_ERROR' || build.status === 'TIMEOUT') {
         color = 'danger'
     }
@@ -95,7 +95,7 @@ async function createSlackMessage(build) {
                     short: true
                 },
                 {
-                    value: `<https://console.cloud.google.com/storage/browser/${GCS_BUCKET}/${build.id}/logs/?project=${build.projectId}| Task logs>`,
+                    value: `<https://console.cloud.google.com/storage/browser/${GCS_BUCKET}/${build.id}/logs/?project=${build.projectId}| Task logs in GCS>`,
                     short: true
                 },
                 {
@@ -114,7 +114,7 @@ async function createSlackMessage(build) {
     attachments.push({
         title: 'Documentation',
         title_link: `https://storage.googleapis.com/${GCS_BUCKET}/${build.id}/docs/index.html`,
-        color: 'green'
+        color: 'good'
     });
     let ref = build.source.repoSource.branchName;
     if (ref === undefined) {

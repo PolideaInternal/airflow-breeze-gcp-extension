@@ -28,6 +28,7 @@ CMDNAME="$(basename -- "$0")"
 
 PYTHON_VERSION=2.7
 APACHE_AIRFLOW_REPO=https://github.com/apache/incubator-airflow.git
+AIRFLOW_BREEZE_REPO=https://github.com/PolideaInternal/airflow-breeze
 
 #################### Whether re-installation should be skipped when entering docker
 SKIP_REINSTALL=False
@@ -49,7 +50,7 @@ CLEANUP_IMAGE=false
 # Repository which is used to clone incubator-airflow from - wh
 # en it's not yet checked out (default is the Apache one)
 
-AIRFLOW_REPOSITORY="${APACHE_AIRFLOW_REPO}"
+AIRFLOW_REPOSITORY=""
 # Branch of the repository to check out when it's first cloned
 AIRFLOW_REPOSITORY_BRANCH="master"
 # Whether pip install should be executed when entering docker
@@ -64,6 +65,10 @@ DOCKER_TEST_ARG=""
 
 # Holds arbitrary command if the -x flag is used.
 DOCKER_COMMAND_ARG=""
+
+
+#################### Reconfigure the GCP project
+RECONFIGURE_GCP_PROJECT=false
 
 #################### Helper functions
 
@@ -152,7 +157,9 @@ docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
 usage() {
       echo """
 
-Usage ${CMDNAME} [FLAGS] [-t <TEST_TARGET | -x <COMMAND]
+Usage ${CMDNAME} [FLAGS] [-t <TEST_TARGET | -x <COMMAND ]
+
+Flags:
 
 -h, --help
         Shows this help message.
@@ -172,12 +179,19 @@ Usage ${CMDNAME} [FLAGS] [-t <TEST_TARGET | -x <COMMAND]
         via 'gcloud auth activate-service-account /root/airflow-breeze-config/keys/<KEY>'.
 
 -P, --python <PYTHON_VERSION>
-        Python virtualenv used by default. One of ('2.7', '3.5', '3.6').
+        Python virtualenv used by default. One of ('2.7', '3.5', '3.6'). [2.7]
 
 -f, --forward-port <PORT_NUMBER>
         Optional - forward the port PORT_NUMBER to airflow's webserver (you must start
         the server with 'airflow webserver' command manually).
 
+Reconfiguring existing project:
+
+-g, --reconfigure-project
+        Reconfigures the project already present in the workspace - generates new
+        service account keys, enables all services and regenerates passwords.
+        It also adds all new variables in case they were added and updates to
+        latest version of the notification cloud functions if they are used.
 
 Managing the docker image of airflow-breeze:
 
@@ -195,7 +209,6 @@ Managing the docker image of airflow-breeze:
 -c, --cleanup-image
         Clean your local copy of the incubator-airflow docker image.
         Needs GCP_PROJECT_ID.
-
 
 
 Automated checkout of airflow-incubator project:
@@ -220,6 +233,7 @@ Optional arbitrary command execution (mutually exclusive with running tests):
 -x, --execute <COMMAND>
         Run the specified command. It is run via 'bash -c' so if you want to run command
         with parameters they must be all passed as one COMMAND (enclosed with ' or \".
+
 
 """
 }
@@ -250,8 +264,8 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:P:f:rudcR:B:t:x: \
-    -l help,project:,workspace:,key:,python:,forward-port:,rebuild-image,upload-image,dowload-image,cleanup-image,repository:,branch:,test-target:,execute: \
+    -o hp:w:k:P:f:rudcgR:B:t:x: \
+    -l help,project:,workspace:,key:,python:,forward-port:,rebuild-image,upload-image,dowload-image,cleanup-image,reconfigure-project,repository:,branch:,test-target:,execute: \
     --name "$CMDNAME" -- "$@")
 
 if [[ $? -ne 0 ]]
@@ -301,6 +315,8 @@ do
       fi
       CLEANUP_IMAGE=true
       shift ;;
+    -g|--reconfigure-gcp-project)
+      RECONFIGURE_GCP_PROJECT=true; shift ;;
     -R|--repository)
       AIRFLOW_REPOSITORY="${2}"; shift 2 ;;
     -B|--branch)
@@ -389,44 +405,44 @@ if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
   echo
   echo "The workspace ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR} does not exist."
   echo
+  if [[ "${AIRFLOW_REPOSITORY}" == "" ]]; then
+      echo
+      echo "You should -R flag to use your fork of the main apache repository"
+      echo
+      echo "Fork apache repository: ${APACHE_AIRFLOW_REPO}"
+      echo
+      exit 1
+  fi
   echo "Attempting to clone ${AIRFLOW_REPOSITORY} to ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
   echo "and checking out ${AIRFLOW_REPOSITORY_BRANCH} branch"
   echo
-  if [[ "${AIRFLOW_REPOSITORY}" == "${APACHE_AIRFLOW_REPO}" ]]; then
-      echo
-      echo "Usually you should specify your own fork of the main apache repository."
-      echo "Rather than ${APACHE_AIRFLOW_REPO}"
-      ${MY_DIR}/confirm "Are you sure you want to checkout apache repository and not your own fork"
-      echo
-  fi
   mkdir -p "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && chmod 777 "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && git clone "${AIRFLOW_REPOSITORY}" "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && pushd "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
   && git checkout "${AIRFLOW_REPOSITORY_BRANCH}" \
   && popd
-  if [[ "${AIRFLOW_REPOSITORY}" != "${APACHE_AIRFLOW_REPO}" ]]; then
-      echo
-      echo
-      echo "Please connect the GitHub fork of your repositories to Cloud Build:"
-      echo
-      echo "Both airflow-breeze and incubator-airflow should be connected"
-      echo "They both have cloudbuild.yaml in their root dir and they are ready to be connected"
-      echo
-      echo "Use https://github.com/apps/google-cloud-build to configure it."
-      echo
-      echo "More details about connecting your GitHub repos to Cloud Build can be found"
-      echo "at https://cloud.google.com/cloud-build/docs/run-builds-on-github ."
-      echo
-      echo "After you do it, you will have to push the airflow-breeze and after it completes"
-      echo "incubator-airflow in order to trigger cloud builds."
-      echo
-      echo "You can check status of your builds via "
-      echo "https://console.cloud.google.com/cloud-build/builds?project=${AIRFLOW_BREEZE_PROJECT_ID} ."
-      echo
-      ${MY_DIR}/confirm "Please confirm that you connected both repos"
-      echo
-   fi
+  echo
+  echo
+  echo "Please connect the GitHub fork of your repositories to Cloud Build:"
+  echo
+  echo "Please make sure you have your own fork of both repositories:"
+  echo "Airflow Breeze: ${AIRFLOW_BREEZE_REPO}"
+  echo "Incubator Airflow: ${APACHE_AIRFLOW_REPO}"
+  echo
+  echo "Both 'airflow-breeze' and 'incubator-airflow' should have triggers defined in Cloud Build"
+  echo "They both have cloudbuild.yaml in their root directories,"
+  echo
+  echo "Configure them here https://console.cloud.google.com/cloud-build/triggers?project=${AIRFLOW_BREEZE_PROJECT_ID} "
+  echo
+  echo "After you do it, you will have to push the 'airflow-breeze' and after it completes"
+  echo "'incubator-airflow' in order to trigger cloud builds."
+  echo
+  echo "You can check status of your builds via "
+  echo "https://console.cloud.google.com/cloud-build/builds?project=${AIRFLOW_BREEZE_PROJECT_ID} ."
+  echo
+  ${MY_DIR}/confirm "Please confirm that you connected both repos"
+  echo
 fi
 
 ################## Check out config dir #############################################
@@ -436,25 +452,36 @@ if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
   echo
   gcloud source repos --project=${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
     "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
-     echo && echo "Bootstrapping airflow-breeze-config as it was not found in GCR" && echo &&
+     echo && echo "Bootstrapping airflow-breeze-config as it was not found in Google Cloud Repository" && echo && \
      python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
        --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME} )
 
-     echo
-     echo "In case you want to deploy notification cloud functions automatically please "\
-          "create build trigger."
-     echo "Trigger should be created for airflow-breeze-config project."
-     echo "Use https://console.cloud.google.com/cloud-build/triggers/add?project=${AIRFLOW_BREEZE_PROJECT_ID}"
-     echo
-     echo "!!!! Make sure to wse notifications/slack/cloudbuild.yaml as build configurations you chose."
-     echo
-     ${MY_DIR}/confirm "OK To proceed"
+     CLOUDBUILD_FILES=$(cd "${AIRFLOW_BREEZE_CONFIG_DIR}"; find . -name cloudbuild.yaml)
+     if [[ ${CLOUDBUILD_FILES} != "" ]]; then
+         echo
+         echo "In order to deploy notification cloud functions, please create Cloud Build triggers."
+         echo
+         echo "Please configure triggers for cloudbuild.yaml file(s) for 'airflow-breze-config' Cloud Source Repository project"
+         echo ${CLOUDBUILD_FILES} | tr -s ' ' '\n'| sed 's/^\.\///'
+         echo
+         echo "Configure them here: https://console.cloud.google.com/cloud-build/triggers/add?project=${AIRFLOW_BREEZE_PROJECT_ID}"
+         echo
+         echo
+         inp ${MY_DIR}/confirmut "OK to continue after creating the triggers"
+     fi
 fi
-
 
 # Cache project value for subsequent executions
 echo ${AIRFLOW_BREEZE_PROJECT_ID} > ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
+
+if [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
+    echo && echo "Reconfiguring project in GCP with new secrets and services" && echo &&
+    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+        python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
+       --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
+       --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}  )
+fi
 
 ################## Check if key exists #############################################
 if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then

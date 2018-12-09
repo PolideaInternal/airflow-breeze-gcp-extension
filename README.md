@@ -10,9 +10,12 @@ interfacing with GCP without going through the overhead of manually setting
 up an Airflow environment.
 
 It allows you to have multiple contribution workspaces simultaneously, storing
-them in subdirectories of its base directory.
+them in subdirectories of its base directory and you can work on several parallel
+project id.
 
-It also allows you to share common configuration 
+It also allows you to share common configuration that you use in your project with
+your team members - via a shared airflow-breeze-config repository in Google Cloud 
+Repositories.
 
 ## Intended Usage
 
