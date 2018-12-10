@@ -124,7 +124,7 @@ async function createSlackMessage(build) {
         ref = build.source.repoSource.commitSha
     }
     return {
-        text: `Build for repo: \`${build.source.repoSource.repoName}\`\nStatus: \`${build.status}\`\nBranch: \`${ref}\`\nBuild id: \`${build.id}\``,
+        text: `Build in project \`${build.projectId}\` for repo: \`${build.source.repoSource.repoName}\`\nStatus: \`${build.status}\`\nBranch: \`${ref}\`\nBuild id: \`${build.id}\``,
         mrkdwn: true,
         attachments: attachments
     }

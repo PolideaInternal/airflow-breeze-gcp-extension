@@ -250,7 +250,7 @@ def enable_service(service):
                  '--project={}'.format(project_id)])
 
 
-def create_all_service_accounts():
+def create_all_service_accounts(recreate_service_accounts):
     print()
     print("Creating all service accounts ... ")
     print()
@@ -266,19 +266,26 @@ def create_all_service_accounts():
             account_name, project_id)
         key_file = os.path.join(TARGET_DIR, "keys", keyfile)
         with open(os.devnull, 'w') as FNULL:
-            logged_call(['gcloud', 'iam', 'service-accounts',
-                         'delete', service_account_email,
-                         '--project={}'.format(project_id),
-                         '--quiet'], stderr=FNULL)
-            logged_call(['gcloud', 'iam', 'service-accounts',
-                         'create', account_name,
-                         '--display-name',
-                         service_account_display_name,
-                         '--project={}'.format(project_id)])
-            logged_call(['gcloud', 'iam', 'service-accounts', 'keys',
-                         'create', key_file,
-                         '--iam-account', service_account_email,
-                         '--project={}'.format(project_id)])
+            account_exists = logged_call(['gcloud', 'iam', 'service-accounts',
+                                          'describe', service_account_email,
+                                          '--project={}'.format(project_id)]) == 0
+            if account_exists and recreate_service_accounts:
+                logged_call(['gcloud', 'iam', 'service-accounts',
+                             'delete', service_account_email,
+                             '--project={}'.format(project_id),
+                             '--quiet'], stderr=FNULL)
+                account_exists = False
+            if not account_exists:
+                account_created = logged_call(['gcloud', 'iam', 'service-accounts',
+                                               'create', account_name,
+                                               '--display-name',
+                                               service_account_display_name,
+                                               '--project={}'.format(project_id)]) == 0
+                if account_created:
+                    logged_call(['gcloud', 'iam', 'service-accounts', 'keys',
+                                 'create', key_file,
+                                 '--iam-account', service_account_email,
+                                 '--project={}'.format(project_id)])
         encrypt_file(key_file)
         for service in services:
             enable_service(service)
@@ -313,7 +320,9 @@ def commit_and_push_google_cloud_config_repository(directory, initial=True):
     logged_call(['git', 'push', '--all', 'google'], cwd=directory)
 
 
-def create_build_bucket(bucket_name):
+def create_build_bucket(bucket_name, recreate_bucket):
+    if recreate_bucket:
+        logged_call(["gsutil", "rm", '-R', '-a', "gs://{}".format(bucket_name)])
     logged_call(["gsutil", "mb", '-c', 'multi_regional', '-p', project_id,
                  "gs://{}".format(bucket_name)])
     logged_call(["gsutil", "iam", "ch", "allUsers:objectViewer",
@@ -352,11 +361,12 @@ def get_random_password():
                    for _ in range(10))
 
 
-def read_manual_parameters():
+def read_manual_parameters(regenerate_passwords):
     global IGNORE_SLACK
     VARIABLES['GCP_PROJECT_ID'] = project_id
-    VARIABLES['GCSQL_MYSQL_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
-    VARIABLES['GCSQL_POSTGRES_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
+    if regenerate_passwords:
+        VARIABLES['GCSQL_MYSQL_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
+        VARIABLES['GCSQL_POSTGRES_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
     read_parameter('BUILD_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
                    'artifacts are stored (bucket name: {}<SUFFIX>)'.format(project_id))
     read_parameter("GCSQL_POSTGRES_PUBLIC_IP", "IP of the Postgres database")
@@ -427,6 +437,8 @@ if __name__ == '__main__':
                         help='Path to the workspace')
     parser.add_argument('--gcp-project-id', '-p', required=True,
                         help='GCP project id')
+    parser.add_argument('--recreate-project', '-r', action='store_true',
+                        help='Recreates all service accounts, keys and buckets')
 
     args = parser.parse_args()
 
@@ -447,24 +459,42 @@ if __name__ == '__main__':
                         "This will create {} repository!"
                         "\n\nAre you sure (y/n) ?: ".
                         format(project_id, CONFIG_REPO_NAME))
+        # force re-creation of objects
+        args.recreate_project = True
     else:
         assert_config_directory_exists()
         # Read current values from environment to retain their values
         VARIABLES.update(os.environ)
         if VARIABLES.get('SLACK_HOOK_ENCRYPTED'):
             VARIABLES['SLACK_HOOK'] = decrypt_value(VARIABLES.get('SLACK_HOOK_ENCRYPTED'))
-
-        confirm = input("\nThe project '{}' is already bootstrapped.\n\n"
-                        "The {} repository is already created and checked out.\n\n"
-                        "If you answer y, the script will recreate all keys, passwords "
-                        "and re-enable all services and \n "
-                        "overwrite configuration files (retaining existing values)\n\n "
-                        "This is useful in case you added new services or want to "
-                        "regenerate the secrets \nor configuration files."
-                        "\n\nAre you sure (y/n) ?: ".
-                        format(project_id, CONFIG_REPO_NAME))
+        if args.recreate_project:
+            confirm = input("\nThe project '{}' is already bootstrapped.\n\n"
+                            "The {} repository is already created and checked out.\n\n"
+                            "If you answer y, the script will RECREATE THE PROJECT. \n" 
+                            "All services accounts will be recreated, passwords "
+                            "and configuration files will be regenerated "
+                            "(retaining existing values)\n\n "
+                            "This is useful in case you want to recreate all secrets."
+                            "\n\nAre you sure (y/n) ?: ".
+                            format(project_id, CONFIG_REPO_NAME))
+        else:
+            confirm = input("\nThe project '{}' is already bootstrapped.\n\n"
+                            "The {} repository is already created and checked out.\n\n"
+                            "If you answer y, the script will "
+                            "re-enable all services and \n "
+                            "regenerate configuration files "
+                            "(retaining existing values)\n\n "
+                            "This is useful in case you added new services or you "
+                            "want to upgrade to latest notification code."
+                            "\n\nAre you sure (y/n) ?: ".
+                            format(project_id, CONFIG_REPO_NAME))
     if confirm != 'y' and confirm != 'Y':
         sys.exit(1)
+
+    start_section("Provide manual parameters for the bootstrap process of {}".
+                  format(project_id))
+    read_manual_parameters(regenerate_passwords=args.recreate_project)
+    end_section()
 
     start_section("Enabling KMS and Cloud Build for project {}".format(project_id))
     enable_service('cloudkms.googleapis.com')
@@ -480,12 +510,6 @@ if __name__ == '__main__':
     create_keyring_and_keys()
     end_section()
 
-    start_section("Provide manual parameters for the bootstrap process of {}".
-                  format(project_id))
-
-    read_manual_parameters()
-    end_section()
-
     start_section("Copying files (with overwritten values) in configuration dir")
     copy_configuration_directory()
     end_section()
@@ -495,11 +519,12 @@ if __name__ == '__main__':
     end_section()
 
     start_section("Creating all service accounts for project {}".format(project_id))
-    create_all_service_accounts()
+    create_all_service_accounts(recreate_service_accounts=args.recreate_project)
     end_section()
 
     start_section("Creating build bucket for project {}".format(project_id))
-    create_build_bucket("{}{}".format(project_id, BUILD_BUCKET_SUFFIX))
+    create_build_bucket("{}{}".format(project_id, BUILD_BUCKET_SUFFIX),
+                        recreate_bucket=args.recreate_project)
     end_section()
 
     start_section("Configuring Cloud Source Repository authentication")
@@ -516,7 +541,7 @@ if __name__ == '__main__':
                   CONFIG_REPO_NAME, project_id))
     logged_call(['git', 'status'], cwd=TARGET_DIR)
     logged_call(['git', 'diff'], cwd=TARGET_DIR)
-    res = input("Confirm commiting and pushing the airflow-breeze-config [y/n] ? ")
+    res = input("Confirm committing and pushing the airflow-breeze-config repo [y/n] ? ")
     if res == 'y' or res == 'Y':
         commit_and_push_google_cloud_config_repository(TARGET_DIR,
                                                        initial=create_new_config_repo)

@@ -70,6 +70,9 @@ DOCKER_COMMAND_ARG=""
 #################### Reconfigure the GCP project
 RECONFIGURE_GCP_PROJECT=false
 
+#################### Recreate the GCP project
+RECREATE_GCP_PROJECT=false
+
 #################### Helper functions
 
 # Helper function for building the docker image locally.
@@ -187,11 +190,16 @@ Flags:
 
 Reconfiguring existing project:
 
--g, --reconfigure-project
-        Reconfigures the project already present in the workspace - generates new
-        service account keys, enables all services and regenerates passwords.
-        It also adds all new variables in case they were added and updates to
-        latest version of the notification cloud functions if they are used.
+-g, --reconfigure-gcp-project
+        Reconfigures the project already present in the workspace.
+        It adds all new variables in case they were added, creates new service accounts
+        and updates to latest version of the notification cloud functions if they are used.
+
+-G, --recreate-gcp-project
+        Reconfigures the project already present in the workspace but recreates
+        all sensitive data - it creates new service accounts, generates new
+        service account keys, regenerates passwords, recreates bucket. It also performs
+        all actions done by reconfigure project.
 
 Managing the docker image of airflow-breeze:
 
@@ -264,8 +272,8 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:P:f:rudcgR:B:t:x: \
-    -l help,project:,workspace:,key:,python:,forward-port:,rebuild-image,upload-image,dowload-image,cleanup-image,reconfigure-project,repository:,branch:,test-target:,execute: \
+    -o hp:w:k:P:f:rudcgGR:B:t:x: \
+    -l help,project:,workspace:,key:,python:,forward-port:,rebuild-image,upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,repository:,branch:,test-target:,execute: \
     --name "$CMDNAME" -- "$@")
 
 if [[ $? -ne 0 ]]
@@ -317,6 +325,8 @@ do
       shift ;;
     -g|--reconfigure-gcp-project)
       RECONFIGURE_GCP_PROJECT=true; shift ;;
+    -G|--recreate-gcp-project)
+      RECREATE_GCP_PROJECT=true; shift ;;
     -R|--repository)
       AIRFLOW_REPOSITORY="${2}"; shift 2 ;;
     -B|--branch)
@@ -475,7 +485,14 @@ fi
 # Cache project value for subsequent executions
 echo ${AIRFLOW_BREEZE_PROJECT_ID} > ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
 
-if [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
+if [[ ${RECREATE_GCP_PROJECT} == "true" ]]; then
+    echo && echo "Reconfiguring project in GCP" && echo &&
+    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+        python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
+       --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
+       --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}   \
+       --recreate-project )
+elif [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
     echo && echo "Reconfiguring project in GCP with new secrets and services" && echo &&
     (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
         python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \

@@ -18,5 +18,5 @@ steps:
   - '-c'
   - >
     gcloud beta functions deploy --env-vars-file=variables.yaml slack_notify
-    --stage-bucket polidea-airflow_cloudbuild --trigger-topic cloud-builds
+    --stage-bucket {{ GCP_PROJECT_ID }}{{ BUILD_BUCKET_SUFFIX }} --trigger-topic cloud-builds
     --runtime nodejs8 | grep -v HOOK
