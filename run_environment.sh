@@ -441,9 +441,10 @@ if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
   echo "Incubator Airflow: ${APACHE_AIRFLOW_REPO}"
   echo
   echo "Both 'airflow-breeze' and 'incubator-airflow' should have triggers defined in Cloud Build"
-  echo "They both have cloudbuild.yaml in their root directories,"
+  echo "In case of 'airflow-breeze' you should configure cloudbuild with '/cloudbuild.yaml' file"
+  echo "In case of 'incubator-airflow' you should configure cloudbuild with '/airflow/contrib/cloudbbuild/cloudbuild.yaml' file"
   echo
-  echo "Configure them here https://console.cloud.google.com/cloud-build/triggers?project=${AIRFLOW_BREEZE_PROJECT_ID} "
+  echo "Configure the triggers here https://console.cloud.google.com/cloud-build/triggers?project=${AIRFLOW_BREEZE_PROJECT_ID} "
   echo
   echo "After you do it, you will have to push the 'airflow-breeze' and after it completes"
   echo "'incubator-airflow' in order to trigger cloud builds."
