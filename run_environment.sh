@@ -478,7 +478,7 @@ if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
      CLOUDBUILD_FILES=$(cd "${AIRFLOW_BREEZE_CONFIG_DIR}"; find . -name cloudbuild.yaml)
      if [[ ${CLOUDBUILD_FILES} != "" ]]; then
          echo
-         echo "In order to deploy notification cloud functions, please create Cloud Build triggers."
+         echo "In order to deploy notification cloud functions, please create Cloud Build triggers if not already done."
          echo
          echo "Please configure triggers for cloudbuild.yaml file(s) for 'airflow-breze-config' Cloud Source Repository project"
          echo ${CLOUDBUILD_FILES} | tr -s ' ' '\n'| sed 's/^\.\///'
@@ -486,7 +486,7 @@ if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
          echo "Configure them here: https://console.cloud.google.com/cloud-build/triggers/add?project=${AIRFLOW_BREEZE_PROJECT_ID}"
          echo
          echo
-         inp ${MY_DIR}/confirmut "OK to continue after creating the triggers"
+         input ${MY_DIR}/confirm "OK to continue after creating the triggers"
      fi
 fi
 
