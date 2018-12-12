@@ -45,8 +45,10 @@ REBUILD=false
 UPLOAD_IMAGE=false
 # Whether to download image to the GCR Repository
 DOWNLOAD_IMAGE=false
-# Wheteher to cleanup local image
+# Whether to cleanup local image
 CLEANUP_IMAGE=false
+# Whether to list keys
+LIST_KEYS=false
 # Repository which is used to clone incubator-airflow from - wh
 # en it's not yet checked out (default is the Apache one)
 
@@ -181,6 +183,9 @@ Flags:
         the key. You can also switch keys manually after entering the environment
         via 'gcloud auth activate-service-account /root/airflow-breeze-config/keys/<KEY>'.
 
+-K, --key-list
+        List all service keys that can be used with --key-name flag.
+
 -P, --python <PYTHON_VERSION>
         Python virtualenv used by default. One of ('2.7', '3.5', '3.6'). [2.7]
 
@@ -272,8 +277,8 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:P:f:rudcgGR:B:t:x: \
-    -l help,project:,workspace:,key:,python:,forward-port:,rebuild-image,upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,repository:,branch:,test-target:,execute: \
+    -o hp:w:k:KP:f:rudcgGR:B:t:x: \
+    -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,rebuild-image,upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,repository:,branch:,test-target:,execute: \
     --name "$CMDNAME" -- "$@")
 
 if [[ $? -ne 0 ]]
@@ -296,6 +301,8 @@ do
       AIRFLOW_BREEZE_WORKSPACE_NAME="${2}"; shift 2 ;;
     -k|--key-name)
       AIRFLOW_BREEZE_KEY_NAME="${2}"; shift 2 ;;
+    -K|--key-list)
+      LIST_KEYS="true"; shift ;;
     -P|--python)
       PYTHON_VERSION="${2}"; shift 2 ;;
     -f|--forward-port)
@@ -500,6 +507,10 @@ elif [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
        --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}  )
 fi
+if [[ ${LIST_KEYS} == "true" ]]; then
+    echo "<KEY_NAME> can be one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
+    exit
+fi
 
 ################## Check if key exists #############################################
 if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
@@ -507,8 +518,8 @@ if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
     echo "Missing key file ${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}"
     echo
     echo "Authentication to Google Cloud Platform will not work."
-    echo "You need to select the key once with -k <KEY_NAME>"
-    echo "Where <KEY_NAME> is one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
+    echo "You need to select the key once with --key-name <KEY_NAME>"
+    echo "Where <KEY_NAME> can be one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
     echo
     ${MY_DIR}/confirm "Proceeding without key"
     echo
