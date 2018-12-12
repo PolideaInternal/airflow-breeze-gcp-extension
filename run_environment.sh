@@ -486,7 +486,7 @@ if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
          echo "Configure them here: https://console.cloud.google.com/cloud-build/triggers/add?project=${AIRFLOW_BREEZE_PROJECT_ID}"
          echo
          echo
-         input ${MY_DIR}/confirm "OK to continue after creating the triggers"
+         ${MY_DIR}/confirm "OK to continue after creating the triggers"
      fi
 fi
 
