@@ -512,6 +512,34 @@ if [[ ${LIST_KEYS} == "true" ]]; then
     exit
 fi
 
+################## Decrypt all files variables #############################
+pushd ${AIRFLOW_BREEZE_KEYS_DIR}
+FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
+echo "Decrypting all files '${FILES}'"
+for FILE in ${FILES}
+do
+  gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
+     --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+     --project=${AIRFLOW_BREEZE_PROJECT_ID} \
+        && echo Decrypted ${FILE}
+done
+chmod -v og-rw *
+popd
+echo
+echo "All files decrypted! "
+echo
+################## Decrypt all variables #############################
+echo
+echo "Decrypting encrypted variables"
+echo
+(set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+ python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
+      ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
+echo
+echo "Variables decrypted! "
+echo
+
+
 ################## Check if key exists #############################################
 if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
     echo
@@ -553,34 +581,6 @@ elif [[ -z "$(docker images -q "${IMAGE_NAME}" 2> /dev/null)" ]]; then
   echo
   build_local
 fi
-
-
-################## Decrypt all files variables #############################
-pushd ${AIRFLOW_BREEZE_KEYS_DIR}
-FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
-echo "Decrypting all files '${FILES}'"
-for FILE in ${FILES}
-do
-  gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
-     --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
-     --project=${AIRFLOW_BREEZE_PROJECT_ID} \
-        && echo Decrypted ${FILE}
-done
-chmod -v og-rw *
-popd
-echo
-echo "All files decrypted! "
-echo
-################## Decrypt all variables #############################
-echo
-echo "Decrypting encrypted variables"
-echo
-(set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
- python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
-      ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
-echo
-echo "Variables decrypted! "
-echo
 
 echo
 echo "Decrypted variables (only visible when you run local environment!):"
