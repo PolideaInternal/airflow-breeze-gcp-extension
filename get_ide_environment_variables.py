@@ -25,6 +25,7 @@ ENCRYPTED_SUFFIX = '_ENCRYPTED'
 # running the tests via IDE (for example IntelliJ. You should copy&paste
 # output of this script to your tests in order to not skip the test
 if __name__ == '__main__':
+    lowercase_user = os.environ.get('USER').lower()[:8].encode('ascii', errors='ignore')
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_file = os.path.join(current_file_dir, ".workspace")
     try:
@@ -54,6 +55,7 @@ if __name__ == '__main__':
         print("The {} is not keys dir.".format(incubator_airflow_keys_dir))
         exit(1)
     os.environ['AIRFLOW_BREEZE_CONFIG_DIR'] = incubator_airflow_config_dir
+    os.environ['AIRFLOW_BREEZE_TEST_SUITE'] = lowercase_user
     variable_env_file = os.path.join(incubator_airflow_config_dir, 'variables.env')
     with open(variable_env_file) as f:
         lines = f.readlines()
@@ -96,7 +98,10 @@ if __name__ == '__main__':
             all_variables[key] = val
     # Force Unit test mode for the tests
     print("AIRFLOW__CORE__UNIT_TEST_MODE=True")
-    # only print relevant variables (those present in variables.env file)
+    # Force enabling of Cloud SQL query tests
+    print("GCP_ENABLE_CLOUDSQL_QUERY_TEST=True")
+
+# only print relevant variables (those present in variables.env file)
     for key in variable_names:
         try:
             print("{}={}".format(key, all_variables[key]))

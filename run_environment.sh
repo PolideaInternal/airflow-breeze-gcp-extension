@@ -75,6 +75,9 @@ RECONFIGURE_GCP_PROJECT=false
 #################### Recreate the GCP project
 RECREATE_GCP_PROJECT=false
 
+#################### Test suite is calculated from user name
+AIRFLOW_BREEZE_TEST_SUITE=$(echo ${USER:0:8} | iconv -f utf-8 -t ascii//ignore)
+
 #################### Helper functions
 
 # Helper function for building the docker image locally.
@@ -143,6 +146,7 @@ docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
  --env-file=${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env \
  -e PYTHON_VERSION=${PYTHON_VERSION} \
  -e SKIP_REINSTALL=${SKIP_REINSTALL} \
+ -e AIRFLOW_BREEZE_TEST_SUITE=${AIRFLOW_BREEZE_TEST_SUITE} \
  -e AIRFLOW_BREEZE_CONFIG_DIR=/root/airflow-breeze-config \
  -e GCP_SERVICE_ACCOUNT_KEY_NAME=${AIRFLOW_BREEZE_KEY_NAME} \
  -v ${AIRFLOW_BREEZE_BASH_HISTORY_FILE}:/root/.bash_history \
@@ -603,6 +607,7 @@ echo " AIRFLOW_SOURCE_DIR         = ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
 echo " AIRFLOW_BREEZE_KEYS_DIR    = ${AIRFLOW_BREEZE_KEYS_DIR}"
 echo " AIRFLOW_BREEZE_CONFIG_DIR  = ${AIRFLOW_BREEZE_CONFIG_DIR}"
 echo " AIRFLOW_BREEZE_OUTPUT_DIR  = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
+echo " AIRFLOW_BREEZE_TEST_SUITE  = ${AIRFLOW_BREEZE_TEST_SUITE}"
 echo
 echo " GCP_SERVICE_KEY            = ${AIRFLOW_BREEZE_KEY_NAME}"
 echo

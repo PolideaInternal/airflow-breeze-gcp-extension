@@ -99,9 +99,20 @@ fi
 
 AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
 
+
 if [[ -f ${AIRFLOW_SOURCES}/decrypted_variables.env ]]; then
+    set -x
     source ${AIRFLOW_SOURCES}/decrypted_variables.env
+    set +x
 fi
+
+# Source all environment variables
+for ENV_FILE in ${GCP_SERVICE_ACCOUNT_KEY_DIR}/*.env
+do
+    set -x
+    source ${ENV_FILE}
+    set +x
+done
 
 set +a
 

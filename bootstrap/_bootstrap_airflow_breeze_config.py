@@ -369,8 +369,6 @@ def read_manual_parameters(regenerate_passwords):
         VARIABLES['GCSQL_POSTGRES_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
     read_parameter('BUILD_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
                    'artifacts are stored (bucket name: {}<SUFFIX>)'.format(project_id))
-    read_parameter("GCSQL_POSTGRES_PUBLIC_IP", "IP of the Postgres database")
-    read_parameter("GCSQL_MYSQL_PUBLIC_IP", "IP of the MySQL database")
     read_parameter('GITHUB_ORGANIZATION', 'Your GitHub user/organization name')
     setup_slack_notifications = input("Setup Slack notifications ? (y/n)")
     if setup_slack_notifications == 'y' or setup_slack_notifications == 'Y':
