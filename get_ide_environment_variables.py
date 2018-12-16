@@ -25,7 +25,7 @@ ENCRYPTED_SUFFIX = '_ENCRYPTED'
 # running the tests via IDE (for example IntelliJ. You should copy&paste
 # output of this script to your tests in order to not skip the test
 if __name__ == '__main__':
-    lowercase_user = os.environ.get('USER').lower()[:8].encode('ascii', errors='ignore')
+    lowercase_user = os.environ.get('USER').lower()[:8].encode('ascii', errors='ignore').decode('ascii')
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_file = os.path.join(current_file_dir, ".workspace")
     try:
