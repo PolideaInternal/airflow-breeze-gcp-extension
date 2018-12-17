@@ -106,12 +106,14 @@ if [[ -f ${AIRFLOW_SOURCES}/decrypted_variables.env ]]; then
     set +x
 fi
 
-# Source all environment variables
+# Source all environment variables from key dir
 for ENV_FILE in ${GCP_SERVICE_ACCOUNT_KEY_DIR}/*.env
 do
-    set -x
-    source ${ENV_FILE}
-    set +x
+    if [[ -f {ENV_FILE} ]]; then
+        set -x
+        source ${ENV_FILE}
+        set +x
+    fi
 done
 
 set +a
