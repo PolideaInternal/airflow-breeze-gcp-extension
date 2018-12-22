@@ -36,6 +36,7 @@ SKIP_REINSTALL=False
 #################### Port forwarding settings
 # If port forwarding is used, holds the port argument to pass to docker run.
 DOCKER_PORT_ARG=""
+RUN_DOCKER=true
 
 #################### Build image settings
 
@@ -333,11 +334,12 @@ do
          exit 1
       fi
       CLEANUP_IMAGE=true
+      RUN_DOCKER=false
       shift ;;
     -g|--reconfigure-gcp-project)
-      RECONFIGURE_GCP_PROJECT=true; shift ;;
+      RECONFIGURE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
     -G|--recreate-gcp-project)
-      RECREATE_GCP_PROJECT=true; shift ;;
+      RECREATE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
     -R|--repository)
       AIRFLOW_REPOSITORY="${2}"; shift 2 ;;
     -B|--branch)
@@ -592,28 +594,29 @@ echo
 cat ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env
 echo
 
-echo
-echo "*************************************************************************"
-echo
-echo " Entering airflow development environment in docker"
-echo
-echo " PYTHON_VERSION             = ${PYTHON_VERSION}"
-echo
-echo " PROJECT                    = ${AIRFLOW_BREEZE_PROJECT_ID}"
-echo
-echo " WORKSPACE                  = ${AIRFLOW_BREEZE_WORKSPACE_NAME}"
-echo
-echo " AIRFLOW_SOURCE_DIR         = ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
-echo " AIRFLOW_BREEZE_KEYS_DIR    = ${AIRFLOW_BREEZE_KEYS_DIR}"
-echo " AIRFLOW_BREEZE_CONFIG_DIR  = ${AIRFLOW_BREEZE_CONFIG_DIR}"
-echo " AIRFLOW_BREEZE_OUTPUT_DIR  = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
-echo " AIRFLOW_BREEZE_TEST_SUITE  = ${AIRFLOW_BREEZE_TEST_SUITE}"
-echo
-echo " GCP_SERVICE_KEY            = ${AIRFLOW_BREEZE_KEY_NAME}"
-echo
-echo " PORT FORWARDING            = ${DOCKER_PORT_ARG}"
-echo
-echo "*************************************************************************"
+if [[ ${RUN_DOCKER} == "true" ]]; then
+    echo
+    echo "*************************************************************************"
+    echo
+    echo " Entering airflow development environment in docker"
+    echo
+    echo " PYTHON_VERSION             = ${PYTHON_VERSION}"
+    echo
+    echo " PROJECT                    = ${AIRFLOW_BREEZE_PROJECT_ID}"
+    echo
+    echo " WORKSPACE                  = ${AIRFLOW_BREEZE_WORKSPACE_NAME}"
+    echo
+    echo " AIRFLOW_SOURCE_DIR         = ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
+    echo " AIRFLOW_BREEZE_KEYS_DIR    = ${AIRFLOW_BREEZE_KEYS_DIR}"
+    echo " AIRFLOW_BREEZE_CONFIG_DIR  = ${AIRFLOW_BREEZE_CONFIG_DIR}"
+    echo " AIRFLOW_BREEZE_OUTPUT_DIR  = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
+    echo " AIRFLOW_BREEZE_TEST_SUITE  = ${AIRFLOW_BREEZE_TEST_SUITE}"
+    echo
+    echo " GCP_SERVICE_KEY            = ${AIRFLOW_BREEZE_KEY_NAME}"
+    echo
+    echo " PORT FORWARDING            = ${DOCKER_PORT_ARG}"
+    echo
+    echo "*************************************************************************"
 
-
-run_container
+    run_container
+fi

@@ -20,6 +20,8 @@
 import json
 import random
 import string
+import tempfile
+
 import subprocess
 import sys
 
@@ -31,13 +33,20 @@ from os.path import dirname, basename
 MY_DIR = dirname(__file__)
 
 BOOTSTRAP_CONFIG_DIR = os.path.join(MY_DIR, "config")
+HELLO_WORLD_SOURCE_DIR = os.path.join(MY_DIR, "hello-world")
+TEST_FILES_DIR = os.path.join(MY_DIR, "test-files")
+BUILD_LIFECYCLE_RULE_FILE = os.path.join(MY_DIR, "build_lifecycle_rule.json")
+
 CONFIG_REPO_NAME = "airflow-breeze-config"
+HELLO_WORLD_REPO_NAME = "hello-world"
 
 TARGET_DIR = ''
+
 IGNORE_SLACK = False
 KEYRING = 'incubator-airflow'
 KEY = 'service_accounts_crypto_key'
 BUILD_BUCKET_SUFFIX = '-builds'
+TEST_BUCKET_SUFFIX = '-tests'
 
 VARIABLES = {}
 
@@ -120,6 +129,12 @@ SERVICE_ACCOUNTS = [
          account_description='Google Cloud Spanner account',
          roles=['roles/spanner.admin'],
          services=['spanner.googleapis.com'],
+         appspot_service_account_impersonation=False),
+    dict(keyfile='gcp_gcs.json',
+         account_name='gcp-storage-account',
+         account_description='Google Cloud Storage account',
+         roles=['roles/storage.admin'],
+         services=['storage.googleapis.com'],
          appspot_service_account_impersonation=False),
 ]
 
@@ -302,7 +317,7 @@ def configure_google_cloud_source_repository_helper():
                  'gcloud.sh'])
 
 
-def create_google_cloud_config_repository(directory, repo_name):
+def create_google_cloud_repository(directory, repo_name):
     logged_call(["gcloud", "source", "repos", "create", repo_name,
                  '--project={}'.format(project_id)])
     logged_call(['git', 'init'], cwd=directory)
@@ -311,7 +326,7 @@ def create_google_cloud_config_repository(directory, repo_name):
                      project_id, repo_name)], cwd=directory)
 
 
-def commit_and_push_google_cloud_config_repository(directory, initial=True):
+def commit_and_push_google_cloud_repository(directory, initial=True):
     logged_call(['git', 'add', '.'], cwd=directory)
     logged_call(['git', 'commit', '-m',
                  'Initial commit of bootstrapped repository' if initial
@@ -320,13 +335,24 @@ def commit_and_push_google_cloud_config_repository(directory, initial=True):
     logged_call(['git', 'push', '--all', 'google'], cwd=directory)
 
 
-def create_build_bucket(bucket_name, recreate_bucket):
+def create_bucket(bucket_name, recreate_bucket, read_all,
+                  files_dir=None,
+                  lifecycle_rule=None):
     if recreate_bucket:
-        logged_call(["gsutil", "rm", '-R', '-a', "gs://{}".format(bucket_name)])
+        logged_call(["gsutil", "-m", "rm", '-R', '-a', "gs://{}".format(bucket_name)])
     logged_call(["gsutil", "mb", '-c', 'multi_regional', '-p', project_id,
                  "gs://{}".format(bucket_name)])
-    logged_call(["gsutil", "iam", "ch", "allUsers:objectViewer",
-                 "gs://{}".format(bucket_name)])
+    if read_all:
+        logged_call(["gsutil", "iam", "ch", "allUsers:objectViewer",
+                     "gs://{}".format(bucket_name)])
+    if files_dir:
+        for file in os.listdir(files_dir):
+            if os.path.isfile(os.path.join(files_dir, file)):
+                logged_call(['gsutil', 'cp', file, "gs://{}".format(bucket_name)],
+                            cwd=files_dir)
+    if lifecycle_rule:
+        logged_call(['gsutil', 'lifecycle', 'set', lifecycle_rule,
+                     "gs://{}".format(bucket_name)], cwd=MY_DIR)
 
 
 def start_section(section):
@@ -369,6 +395,8 @@ def read_manual_parameters(regenerate_passwords):
         VARIABLES['GCSQL_POSTGRES_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
     read_parameter('BUILD_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
                    'artifacts are stored (bucket name: {}<SUFFIX>)'.format(project_id))
+    read_parameter('TEST_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
+                   'test files are stored (bucket name: {}<SUFFIX>)'.format(project_id))
     read_parameter('GITHUB_ORGANIZATION', 'Your GitHub user/organization name')
     setup_slack_notifications = input("Setup Slack notifications ? (y/n)")
     if setup_slack_notifications == 'y' or setup_slack_notifications == 'Y':
@@ -450,6 +478,7 @@ if __name__ == '__main__':
 
     VARIABLES['VARIABLES_YAML'] = 'variables.yaml'
     VARIABLES['BUILD_BUCKET_SUFFIX'] = BUILD_BUCKET_SUFFIX
+    VARIABLES['TEST_BUCKET_SUFFIX'] = TEST_BUCKET_SUFFIX
 
     if create_new_config_repo:
         assert_config_directory_does_not_exist()
@@ -520,9 +549,13 @@ if __name__ == '__main__':
     create_all_service_accounts(recreate_service_accounts=args.recreate_project)
     end_section()
 
-    start_section("Creating build bucket for project {}".format(project_id))
-    create_build_bucket("{}{}".format(project_id, BUILD_BUCKET_SUFFIX),
-                        recreate_bucket=args.recreate_project)
+    start_section("Creating build and test bucket for project {}".format(project_id))
+    create_bucket("{}{}".format(project_id, BUILD_BUCKET_SUFFIX),
+                  recreate_bucket=args.recreate_project, read_all=True,
+                  lifecycle_rule=BUILD_LIFECYCLE_RULE_FILE)
+    create_bucket("{}{}".format(project_id, TEST_BUCKET_SUFFIX),
+                  recreate_bucket=args.recreate_project, read_all=False,
+                  files_dir=TEST_FILES_DIR)
     end_section()
 
     start_section("Configuring Cloud Source Repository authentication")
@@ -530,9 +563,15 @@ if __name__ == '__main__':
     end_section()
 
     if create_new_config_repo:
-        start_section("Creating {} project in Google Cloud Repository for project {}".
-                      format(CONFIG_REPO_NAME, project_id))
-        create_google_cloud_config_repository(TARGET_DIR, CONFIG_REPO_NAME)
+        start_section("Creating {} and {} projects in Google Cloud "
+                      "Repository for project {}".
+                      format(CONFIG_REPO_NAME, HELLO_WORLD_REPO_NAME, project_id))
+        create_google_cloud_repository(TARGET_DIR, CONFIG_REPO_NAME)
+        hello_world_dir = tempfile.mkdtemp()
+        shutil.copytree(HELLO_WORLD_SOURCE_DIR, hello_world_dir)
+        create_google_cloud_repository(hello_world_dir, HELLO_WORLD_REPO_NAME)
+        commit_and_push_google_cloud_repository(hello_world_dir, initial=True)
+        shutil.rmtree(hello_world_dir)
         end_section()
 
     start_section("Pushing files to {} in Google Cloud Repository for project {}".format(
@@ -541,6 +580,6 @@ if __name__ == '__main__':
     logged_call(['git', 'diff'], cwd=TARGET_DIR)
     res = input("Confirm committing and pushing the airflow-breeze-config repo [y/n] ? ")
     if res == 'y' or res == 'Y':
-        commit_and_push_google_cloud_config_repository(TARGET_DIR,
-                                                       initial=create_new_config_repo)
+        commit_and_push_google_cloud_repository(TARGET_DIR,
+                                                initial=create_new_config_repo)
     end_section()

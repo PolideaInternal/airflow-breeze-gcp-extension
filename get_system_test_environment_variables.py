@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import errno
 import os
 import subprocess
@@ -21,11 +22,17 @@ ENCRYPTED_SUFFIX = '_ENCRYPTED'
 # specific language governing permissions and limitations
 # under the License.
 
-# Run this in airflow-breeze to get list of environment variables to set for
-# running the tests via IDE (for example IntelliJ. You should copy&paste
-# output of this script to your tests in order to not skip the test
-if __name__ == '__main__':
-    lowercase_user = os.environ.get('USER').lower()[:8].encode('ascii', errors='ignore').decode('ascii')
+
+def add_variable(variable_name, variable_names, all_variables, value):
+    if variable_name not in variable_names:
+        variable_names.append(variable_name)
+    all_variables[variable_name] = value
+
+
+def process_environment_variables():
+    lowercase_user = os.environ.get('USER').lower()[:8].encode('ascii',
+                                                               errors='ignore').decode(
+        'ascii')
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_file = os.path.join(current_file_dir, ".workspace")
     try:
@@ -66,7 +73,6 @@ if __name__ == '__main__':
             variable_names.append(key)
             if key.endswith(ENCRYPTED_SUFFIX):
                 variable_names.append(key[:-len(ENCRYPTED_SUFFIX)])
-
     if not os.path.isfile(variable_env_file):
         print("The {} is not variable env file.".format(variable_env_file))
         exit(1)
@@ -96,14 +102,27 @@ if __name__ == '__main__':
             all_variables[original_key] = decrypted_val
         else:
             all_variables[key] = val
-    # Force Unit test mode for the tests
-    print("AIRFLOW__CORE__UNIT_TEST_MODE=True")
-    # Force enabling of Cloud SQL query tests
-    print("GCP_ENABLE_CLOUDSQL_QUERY_TEST=True")
 
-# only print relevant variables (those present in variables.env file)
+    # Force enabling of Cloud SQL query tests
+    add_variable("GCP_ENABLE_CLOUDSQL_QUERY_TEST", variable_names, all_variables, "True")
+    # Force Unit test mode for the tests
+    add_variable("AIRFLOW__CORE__UNIT_TEST_MODE", variable_names, all_variables, "True")
+    return variable_names, all_variables
+
+
+def print_variables():
+    variable_names, all_variables = process_environment_variables()
+
+    # only print relevant variables (those present in variables.env file)
     for key in variable_names:
         try:
             print("{}={}".format(key, all_variables[key]))
         except KeyError:
             pass
+
+
+# Run this in airflow-breeze to get list of environment variables to set for
+# running the tests via IDE (for example IntelliJ. You should copy&paste
+# output of this script to your tests in order to not skip the test
+if __name__ == '__main__':
+    print_variables()
