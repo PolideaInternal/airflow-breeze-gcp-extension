@@ -332,7 +332,7 @@ def commit_and_push_google_cloud_repository(directory, initial=True):
                  'Initial commit of bootstrapped repository' if initial
                  else 'Updating service keys and configuration'],
                 cwd=directory)
-    logged_call(['git', 'push', '--all', 'google'], cwd=directory)
+    logged_call(['git', 'push', '--set-upstream', 'google', 'master'], cwd=directory)
 
 
 def create_bucket(bucket_name, recreate_bucket, read_all,
@@ -567,7 +567,10 @@ if __name__ == '__main__':
                       "Repository for project {}".
                       format(CONFIG_REPO_NAME, HELLO_WORLD_REPO_NAME, project_id))
         create_google_cloud_repository(TARGET_DIR, CONFIG_REPO_NAME)
+        commit_and_push_google_cloud_repository(TARGET_DIR, initial=True)
         hello_world_dir = tempfile.mkdtemp()
+        # Delete so that copytree can work
+        os.rmdir(hello_world_dir)
         shutil.copytree(HELLO_WORLD_SOURCE_DIR, hello_world_dir)
         create_google_cloud_repository(hello_world_dir, HELLO_WORLD_REPO_NAME)
         commit_and_push_google_cloud_repository(hello_world_dir, initial=True)

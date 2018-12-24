@@ -1,3 +1,4 @@
+# Note that you have to run "./encrypt_all_files.sh" in main breeze folder to save changes to this folder
 SLACK_HOOK: {{ SLACK_HOOK }}
 GCS_BUCKET: {{ GCP_PROJECT_ID }}{{ BUILD_BUCKET_SUFFIX }}
 PROJECT_ID: {{ GCP_PROJECT_ID }}

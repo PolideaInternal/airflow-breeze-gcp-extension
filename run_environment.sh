@@ -24,14 +24,10 @@ set -euo pipefail
 
 CMDNAME="$(basename -- "$0")"
 
-#################### Default python version
+# Repositories
 
-PYTHON_VERSION=2.7
 APACHE_AIRFLOW_REPO=https://github.com/apache/incubator-airflow.git
 AIRFLOW_BREEZE_REPO=https://github.com/PolideaInternal/airflow-breeze
-
-#################### Whether re-installation should be skipped when entering docker
-SKIP_REINSTALL=False
 
 #################### Port forwarding settings
 # If port forwarding is used, holds the port argument to pass to docker run.
@@ -50,9 +46,10 @@ DOWNLOAD_IMAGE=false
 CLEANUP_IMAGE=false
 # Whether to list keys
 LIST_KEYS=false
+# initializes local virtualenv
+INITIALIZE_LOCAL_VIRTUALENV=false
 # Repository which is used to clone incubator-airflow from - wh
 # en it's not yet checked out (default is the Apache one)
-
 AIRFLOW_REPOSITORY=""
 # Branch of the repository to check out when it's first cloned
 AIRFLOW_REPOSITORY_BRANCH="master"
@@ -76,6 +73,8 @@ RECONFIGURE_GCP_PROJECT=false
 #################### Recreate the GCP project
 RECREATE_GCP_PROJECT=false
 
+USER=${USER:=""}
+
 #################### Test suite is calculated from user name
 AIRFLOW_BREEZE_TEST_SUITE=$(echo ${USER:0:8} | iconv -f utf-8 -t ascii//ignore)
 
@@ -97,7 +96,10 @@ build_local () {
 download () {
   echo
   echo "Download docker image '${IMAGE_NAME}'"
+  set +e
   docker pull ${IMAGE_NAME}
+  set -e
+  return $?
 }
 
 cleanup () {
@@ -145,8 +147,7 @@ docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
  -v ${AIRFLOW_BREEZE_OUTPUT_DIR}:/airflow/output \
  -v ${AIRFLOW_BREEZE_CONFIG_DIR}:/root/airflow-breeze-config \
  --env-file=${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env \
- -e PYTHON_VERSION=${PYTHON_VERSION} \
- -e SKIP_REINSTALL=${SKIP_REINSTALL} \
+ -e PYTHON_VERSION=${AIRFLOW_BREEZE_PYTHON_VERSION} \
  -e AIRFLOW_BREEZE_TEST_SUITE=${AIRFLOW_BREEZE_TEST_SUITE} \
  -e AIRFLOW_BREEZE_CONFIG_DIR=/root/airflow-breeze-config \
  -e GCP_SERVICE_ACCOUNT_KEY_NAME=${AIRFLOW_BREEZE_KEY_NAME} \
@@ -210,6 +211,14 @@ Reconfiguring existing project:
         all sensitive data - it creates new service accounts, generates new
         service account keys, regenerates passwords, recreates bucket. It also performs
         all actions done by reconfigure project.
+
+Initializing your local virtualenv:
+
+-i, --initialize-local-virtualenv
+        Initializes locally created virtualenv installing all dependencies of Airflow.
+        This local virtualenv can be used to aid autocompletion and IDE support as
+        well as run unit tests directly from the IDE. You need to have virtualenv
+        activated before running this command.
 
 Managing the docker image of airflow-breeze:
 
@@ -282,8 +291,10 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:KP:f:rudcgGR:B:t:x: \
-    -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,rebuild-image,upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,repository:,branch:,test-target:,execute: \
+    -o hp:w:k:KP:f:rudcgGiR:B:t:x: \
+    -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,rebuild-image,\
+upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,\
+initialize-local-virtualenv,repository:,branch:,test-target:,execute: \
     --name "$CMDNAME" -- "$@")
 
 if [[ $? -ne 0 ]]
@@ -309,7 +320,7 @@ do
     -K|--key-list)
       LIST_KEYS="true"; shift ;;
     -P|--python)
-      PYTHON_VERSION="${2}"; shift 2 ;;
+      AIRFLOW_BREEZE_PYTHON_VERSION="${2}"; shift 2 ;;
     -f|--forward-port)
       DOCKER_PORT_ARG="-p 127.0.0.1:${2}:8080"; shift 2 ;;
     -r|--rebuild-image)
@@ -340,6 +351,8 @@ do
       RECONFIGURE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
     -G|--recreate-gcp-project)
       RECREATE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
+    -i|--initialize-local-virtualenv)
+      INITIALIZE_LOCAL_VIRTUALENV=true; RUN_DOCKER=false; shift ;;
     -R|--repository)
       AIRFLOW_REPOSITORY="${2}"; shift 2 ;;
     -B|--branch)
@@ -366,6 +379,14 @@ export AIRFLOW_BREEZE_WORKSPACE_FILE=${MY_DIR}/.workspace
 export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:=$(cat ${AIRFLOW_BREEZE_WORKSPACE_FILE} 2>/dev/null)}"
 export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:="default"}"
 
+if [[ ${AIRFLOW_BREEZE_WORKSPACE_NAME} == */* ]]; then
+    echo
+    echo "Your workspace (${AIRFLOW_BREEZE_WORKSPACE_NAME}) should not contain /"
+    echo "It should be a simple directory name."
+    echo
+    exit 1
+fi
+
 # Cache workspace value for subsequent executions
 echo ${AIRFLOW_BREEZE_WORKSPACE_NAME} > ${AIRFLOW_BREEZE_WORKSPACE_FILE}
 
@@ -381,6 +402,9 @@ export AIRFLOW_BREEZE_BASH_HISTORY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAM
 export AIRFLOW_BREEZE_PROJECT_ID_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.project_id
 export AIRFLOW_BREEZE_KEY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.key
 export AIRFLOW_BREEZE_KEY_NAME="${AIRFLOW_BREEZE_KEY_NAME:=$(cat ${AIRFLOW_BREEZE_KEY_FILE} 2>/dev/null)}"
+export AIRFLOW_BREEZE_PYTHON_VERSION_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.python_version
+export AIRFLOW_BREEZE_PYTHON_VERSION="${AIRFLOW_BREEZE_PYTHON_VERSION:=$(cat ${AIRFLOW_BREEZE_PYTHON_VERSION_FILE} 2>/dev/null)}"
+export AIRFLOW_BREEZE_PYTHON_VERSION="${AIRFLOW_BREEZE_PYTHON_VERSION:=3.6}"
 
 #################### Check project id presence ##############################################
 
@@ -396,6 +420,16 @@ if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID:-}" ]]; then
   fi
 fi
 
+#################### Check project python version ##########################################
+
+ALLOWED_PYTHON_VERSIONS=" 2.7 3.5 3.6 "
+
+if [[ ${ALLOWED_PYTHON_VERSIONS} != *" ${AIRFLOW_BREEZE_PYTHON_VERSION} "* ]]; then
+    echo
+    echo "ERROR! Allowed Python versions are${ALLOWED_PYTHON_VERSIONS}and you have '${AIRFLOW_BREEZE_PYTHON_VERSION}'"
+    echo
+    exit 1
+fi
 
 #################### Setup image name ##############################################
 IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze:${AIRFLOW_REPOSITORY_BRANCH}"
@@ -453,16 +487,18 @@ if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
   echo "Airflow Breeze: ${AIRFLOW_BREEZE_REPO}"
   echo "Incubator Airflow: ${APACHE_AIRFLOW_REPO}"
   echo
-  echo "Both 'airflow-breeze' and 'incubator-airflow' should have triggers defined in Cloud Build"
-  echo "In case of 'airflow-breeze' you should configure cloudbuild with '/cloudbuild.yaml' file"
-  echo "In case of 'incubator-airflow' you should configure cloudbuild with '/airflow/contrib/cloudbbuild/cloudbuild.yaml' file"
   echo
-  echo "Configure the triggers here https://console.cloud.google.com/cloud-build/triggers?project=${AIRFLOW_BREEZE_PROJECT_ID} "
+  echo "Enable Google Cloud Build Application in both projects:"
+  echp
+  echo " * fork of Apache's https://github.com/apache/incubator-airflow"
+  echo " * fork of Airflow Breeze http://github.com/PolideaInternal/airflow-breeze"
   echo
-  echo "After you do it, you will have to push the 'airflow-breeze' and after it completes"
-  echo "'incubator-airflow' in order to trigger cloud builds."
+  echo "This can be done via: https://github.com/marketplace/google-cloud-build"
   echo
-  echo "You can check status of your builds via "
+  echo "After you set it up it, you have to push the 'airflow-breeze' and wait until it completes."
+  echo "Then any time you push 'incubator-airflow' it will perform automated build and testing of your project."
+  echo
+  echo "In the future you can always check status of your builds via "
   echo "https://console.cloud.google.com/cloud-build/builds?project=${AIRFLOW_BREEZE_PROJECT_ID} ."
   echo
   ${MY_DIR}/confirm "Please confirm that you connected both repos"
@@ -484,20 +520,21 @@ if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
      CLOUDBUILD_FILES=$(cd "${AIRFLOW_BREEZE_CONFIG_DIR}"; find . -name cloudbuild.yaml)
      if [[ ${CLOUDBUILD_FILES} != "" ]]; then
          echo
-         echo "In order to deploy notification cloud functions, please create Cloud Build triggers if not already done."
+         echo "In order to enable notifications, please setup trigger(s) for Cloud Build"
          echo
-         echo "Please configure triggers for cloudbuild.yaml file(s) for 'airflow-breze-config' Cloud Source Repository project"
+         echo "Choose one of the cloudbuild.yaml file(s) for 'airflow-breeze-config' project"
          echo ${CLOUDBUILD_FILES} | tr -s ' ' '\n'| sed 's/^\.\///'
          echo
          echo "Configure them here: https://console.cloud.google.com/cloud-build/triggers/add?project=${AIRFLOW_BREEZE_PROJECT_ID}"
          echo
          echo
-         ${MY_DIR}/confirm "OK to continue after creating the triggers"
+         ${MY_DIR}/confirm "Please confirm that you created the trigger(s)"
      fi
 fi
 
-# Cache project value for subsequent executions
+# Cache project and python version for subsequent executions
 echo ${AIRFLOW_BREEZE_PROJECT_ID} > ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
+echo ${AIRFLOW_BREEZE_PYTHON_VERSION} > ${AIRFLOW_BREEZE_PYTHON_VERSION_FILE}
 
 if [[ ${RECREATE_GCP_PROJECT} == "true" ]]; then
     echo && echo "Reconfiguring project in GCP" && echo &&
@@ -513,55 +550,44 @@ elif [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
        --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}  )
 fi
+if [[ ${INITIALIZE_LOCAL_VIRTUALENV} == "true" ]]; then
+   # Check if we are in virtualenv
+   set +e
+   echo -e "import sys\nif not hasattr(sys,'real_prefix'):\n  sys.exit(1)" | python
+   RES=$?
+   set -e
+   if [[ ${RES} != "0" ]]; then
+        echo
+        echo "Initializing local virtualenv only works when you have virtualenv activated"
+        echo
+        echo "Please enter your local virtualenv before (for example using 'workon' from virtualenvwrapper) "
+        echo
+        exit 1
+   else
+        echo
+        echo "Initializing the virtualenv!"
+        echo
+        pushd ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}
+        SYSTEM=$(uname -s)
+        echo "#######################################################################"
+        echo "  If you have trouble installing all dependencies you might need to run:"
+        echo
+        if [[ ${SYSTEM} == "Darwin" ]]; then
+            echo "  brew install sqlite mysql postgresql"
+        else
+            echo "sudo apt-get install openssl sqlite libmysqlclient-dev libmysqld-dev postgresql --confirm"
+        fi
+        echo
+        echo "#######################################################################"
+        pip install -e .[devel-all]
+        popd
+   fi
+fi
+
 if [[ ${LIST_KEYS} == "true" ]]; then
     echo "<KEY_NAME> can be one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
     exit
 fi
-
-################## Decrypt all files variables #############################
-pushd ${AIRFLOW_BREEZE_KEYS_DIR}
-FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
-echo "Decrypting all files '${FILES}'"
-for FILE in ${FILES}
-do
-  gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
-     --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
-     --project=${AIRFLOW_BREEZE_PROJECT_ID} \
-        && echo Decrypted ${FILE}
-done
-chmod -v og-rw *
-popd
-echo
-echo "All files decrypted! "
-echo
-################## Decrypt all variables #############################
-echo
-echo "Decrypting encrypted variables"
-echo
-(set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
- python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
-      ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
-echo
-echo "Variables decrypted! "
-echo
-
-
-################## Check if key exists #############################################
-if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
-    echo
-    echo "Missing key file ${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}"
-    echo
-    echo "Authentication to Google Cloud Platform will not work."
-    echo "You need to select the key once with --key-name <KEY_NAME>"
-    echo "Where <KEY_NAME> can be one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
-    echo
-    ${MY_DIR}/confirm "Proceeding without key"
-    echo
-fi
-
-# Cache key value for subsequent executions
-echo ${AIRFLOW_BREEZE_KEY_NAME} > ${AIRFLOW_BREEZE_KEY_FILE}
-
 ################## Check if .bash_history file exists #############################
 if [[ ! -f "${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history" ]]; then
   echo
@@ -582,39 +608,87 @@ if [[ "${REBUILD}" == "true" ]]; then
   echo
   build_local
 elif [[ -z "$(docker images -q "${IMAGE_NAME}" 2> /dev/null)" ]]; then
-  echo
-  echo "The local image does not exist. Building it"
-  echo
-  build_local
+  if [[ $? != "0" ]]; then
+      echo
+      echo "The local image does not exist. Building it. It might take up to 30 minutes."
+      echo
+      echo "Press enter to continue"
+      read
+      build_local
+  fi
 fi
 
-echo
-echo "Decrypted variables (only visible when you run local environment!):"
-echo
-cat ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env
-echo
-
 if [[ ${RUN_DOCKER} == "true" ]]; then
+    ################## Decrypt all files variables #############################
+    pushd ${AIRFLOW_BREEZE_KEYS_DIR}
+    FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
+    echo "Decrypting all files '${FILES}'"
+    for FILE in ${FILES}
+    do
+      gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
+         --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+         --project=${AIRFLOW_BREEZE_PROJECT_ID} \
+            && echo Decrypted ${FILE}
+    done
+    chmod -v og-rw *
+    popd
+    echo
+    echo "All files decrypted! "
+    echo
+    ################## Decrypt all variables #############################
+    echo
+    echo "Decrypting encrypted variables"
+    echo
+    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+     python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
+          ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
+    echo
+    echo "Variables decrypted! "
+    echo
+
+
+    ################## Check if key exists #############################################
+    if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
+        echo
+        echo "Missing key file ${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}"
+        echo
+        echo "Authentication to Google Cloud Platform will not work."
+        echo "You need to select the key once with --key-name <KEY_NAME>"
+        echo "Where <KEY_NAME> can be one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
+        echo
+        ${MY_DIR}/confirm "Proceeding without key"
+        echo
+    fi
+
+    # Cache key value for subsequent executions
+    echo ${AIRFLOW_BREEZE_KEY_NAME} > ${AIRFLOW_BREEZE_KEY_FILE}
+
+    echo
+    echo "Decrypted variables (only visible when you run local environment!):"
+    echo
+    cat ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env
+    echo
+
     echo
     echo "*************************************************************************"
     echo
     echo " Entering airflow development environment in docker"
     echo
-    echo " PYTHON_VERSION             = ${PYTHON_VERSION}"
+    echo " AIRFLOW_BREEZE_PYTHON_VERSION = ${AIRFLOW_BREEZE_PYTHON_VERSION}"
     echo
-    echo " PROJECT                    = ${AIRFLOW_BREEZE_PROJECT_ID}"
+    echo " PROJECT                       = ${AIRFLOW_BREEZE_PROJECT_ID}"
     echo
-    echo " WORKSPACE                  = ${AIRFLOW_BREEZE_WORKSPACE_NAME}"
+    echo " WORKSPACE                     = ${AIRFLOW_BREEZE_WORKSPACE_NAME}"
     echo
-    echo " AIRFLOW_SOURCE_DIR         = ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
-    echo " AIRFLOW_BREEZE_KEYS_DIR    = ${AIRFLOW_BREEZE_KEYS_DIR}"
-    echo " AIRFLOW_BREEZE_CONFIG_DIR  = ${AIRFLOW_BREEZE_CONFIG_DIR}"
-    echo " AIRFLOW_BREEZE_OUTPUT_DIR  = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
-    echo " AIRFLOW_BREEZE_TEST_SUITE  = ${AIRFLOW_BREEZE_TEST_SUITE}"
+    echo " AIRFLOW_SOURCE_DIR            = ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
+    echo " AIRFLOW_BREEZE_KEYS_DIR       = ${AIRFLOW_BREEZE_KEYS_DIR}"
+    echo " AIRFLOW_BREEZE_CONFIG_DIR     = ${AIRFLOW_BREEZE_CONFIG_DIR}"
+    echo " AIRFLOW_BREEZE_OUTPUT_DIR     = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
+    echo " AIRFLOW_BREEZE_TEST_SUITE     = ${AIRFLOW_BREEZE_TEST_SUITE}"
     echo
-    echo " GCP_SERVICE_KEY            = ${AIRFLOW_BREEZE_KEY_NAME}"
+    echo " AIRFLOW_BREEZE_KEY_NAME       = ${AIRFLOW_BREEZE_KEY_NAME}"
     echo
-    echo " PORT FORWARDING            = ${DOCKER_PORT_ARG}"
+    echo " PORT FORWARDING               = ${DOCKER_PORT_ARG}"
     echo
     echo "*************************************************************************"
 
