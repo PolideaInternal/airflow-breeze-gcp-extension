@@ -128,6 +128,8 @@ RUN echo Checking out airflow source from ${AIRFLOW_REPO_URL}, branch: ${AIRFLOW
 RUN git clone ${AIRFLOW_REPO_URL} temp_airflow
 RUN cd temp_airflow && git checkout ${AIRFLOW_REPO_BRANCH}
 
+ENV CASS_DRIVER_BUILD_CONCURRENCY=8
+
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow27 \
