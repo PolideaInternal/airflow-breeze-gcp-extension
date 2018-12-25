@@ -137,15 +137,15 @@ async function createSlackMessage(build) {
     ];
     await get_documentation_attachment(build, attachments);
 
-    const commit_info = await octokit.repos.getCommit({owner: GITHUB_ORGANIZATION, repo: repo_name, sha: commit_sha});
-    const data = commit_info.data;
-    console.log(data);
+    const commit_info = await octokit.repos.getCommit(
+        {owner: GITHUB_ORGANIZATION, repo: repo_name, sha: commit_sha}).data;
+    console.log(commit_info);
     attachments[0].fields.push({
         value: `<https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/tree/${branch_name}| GitHub ${repo_name}: ${branch_name}`,
         short: true
     });
     attachments[0].fields.push({
-        value: `<https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/commit/${commit_sha}| ${data.commit.message.split('\n')[0]}`,
+        value: `<https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/commit/${commit_sha}| ${commit_info.commit.message.split('\n')[0]}`,
     });
 
     let i;
@@ -163,9 +163,9 @@ async function createSlackMessage(build) {
  Branch: \`${branch_name}\`
  Tag: \`${tag_name}\`
  Commit SHA: \`${commit_sha}\`
- Commit message: \`${data.commit.message.split('\n')[0]}\`
- Committer: \`${data.commit.committer.name}\`
- Author: \`${data.commit.author.name}\`
+ Commit message: \`${commit_info.commit.message.split('\n')[0]}\`
+ Committer: \`${commit_info.commit.committer.name}\`
+ Author: \`${commit_info.commit.author.name}\`
  Build id: \`${build.id}\``,
         mrkdwn: true,
         attachments: attachments
