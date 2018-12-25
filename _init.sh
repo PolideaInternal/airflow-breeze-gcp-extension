@@ -67,7 +67,7 @@ fi
 
 cd /workspace
 
-pip install -e .[devel_ci] \
+pip install -e .[devel_gcp,postgres] \
   && sudo service postgresql start \
   && sudo -u postgres createuser root \
   && sudo -u postgres createdb airflow/airflow.db

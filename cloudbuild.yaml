@@ -18,8 +18,12 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
-          '-t', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}',
+          '--build-arg',
+          'AIRFLOW_REPO_URL=https://github.com/PolideaInternal/incubator-airflow.git',
+          '--build-arg',
+          'AIRFLOW_REPO_BRANCH=GCP_DOCUMENTATION_REVIEW',
           '--cache-from', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}',
+          '-t', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}',
           '.' ]
 images:
 - 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}'

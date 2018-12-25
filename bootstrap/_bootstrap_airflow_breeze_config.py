@@ -30,6 +30,8 @@ import os
 import shutil
 from os.path import dirname, basename
 
+TEMPLATE_PREFIX = "TEMPLATE-"
+
 MY_DIR = dirname(__file__)
 
 BOOTSTRAP_CONFIG_DIR = os.path.join(MY_DIR, "config")
@@ -78,6 +80,8 @@ def ignore_dirs(src, names):
 def copy_file(source_path, destination_path):
     print('Copying file {} -> {}'.format(
         source_path, destination_path))
+    if destination_path.startswith(TEMPLATE_PREFIX):
+        destination_path = destination_path[len(TEMPLATE_PREFIX):]
     shutil.copy2(source_path, destination_path)
 
     # We do not use Jinja2 or another templating system because we want to make
@@ -390,6 +394,8 @@ def get_random_password():
 def read_manual_parameters(regenerate_passwords):
     global IGNORE_SLACK
     VARIABLES['GCP_PROJECT_ID'] = project_id
+    if not VARIABLES.get('REPO_NAME'):
+        VARIABLES['REPO_NAME'] = 'incubator-airflow'
     if regenerate_passwords:
         VARIABLES['GCSQL_MYSQL_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
         VARIABLES['GCSQL_POSTGRES_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
@@ -398,6 +404,7 @@ def read_manual_parameters(regenerate_passwords):
     read_parameter('TEST_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
                    'test files are stored (bucket name: {}<SUFFIX>)'.format(project_id))
     read_parameter('GITHUB_ORGANIZATION', 'Your GitHub user/organization name')
+    read_parameter('REPO_NAME', 'Name of your repository in your user/organization')
     setup_slack_notifications = input("Setup Slack notifications ? (y/n)")
     if setup_slack_notifications == 'y' or setup_slack_notifications == 'Y':
         read_parameter('SLACK_HOOK', 'Slack hook to post Cloud Build status - usually '

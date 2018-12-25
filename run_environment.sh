@@ -84,7 +84,10 @@ AIRFLOW_BREEZE_TEST_SUITE=$(echo ${USER:0:8} | iconv -f utf-8 -t ascii//ignore)
 build_local () {
   echo
   echo "Building docker image '${IMAGE_NAME}'"
-  docker build . -t ${IMAGE_NAME}
+  docker build  \
+    --build-arg AIRFLOW_REPO_URL=https://github.com/PolideaInternal/incubator-airflow.git \
+    --build-arg AIRFLOW_REPO_BRANCH=GCP_DOCUMENTATION_REVIEW \
+    . -t ${IMAGE_NAME}
   if [[ "${UPLOAD_IMAGE}" != "false" ]]; then
     echo
     echo "Uploading built image to ${IMAGE_NAME}"
@@ -622,13 +625,18 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     ################## Decrypt all files variables #############################
     pushd ${AIRFLOW_BREEZE_KEYS_DIR}
     FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
-    echo "Decrypting all files '${FILES}'"
+    echo "Decrypting all new encrypted files"
     for FILE in ${FILES}
     do
-      gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
-         --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
-         --project=${AIRFLOW_BREEZE_PROJECT_ID} \
-            && echo Decrypted ${FILE}
+      DECRYPTED_FILE=$(basename ${FILE} .enc)
+      if [[ ${FILE} -nt ${DECRYPTED_FILE} ]]; then
+          gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
+             --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+             --project=${AIRFLOW_BREEZE_PROJECT_ID} \
+                && echo Decrypted ${FILE}
+      else
+        echo "Skipping the unchanged and already decrypted ${FILE}"
+      fi
     done
     chmod -v og-rw *
     popd

@@ -22,7 +22,6 @@ FROM ubuntu:18.04
 SHELL ["/bin/bash", "-c"]
 
 ENV DEBIAN_FRONTEND=noninteractive
-
 # Java installation.
 ENV LANG C.UTF-8
 # add a simple script that can auto-detect the appropriate JAVA_HOME value
@@ -118,23 +117,33 @@ RUN source /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
 ## Preinstall airflow
 ## Airflow requires this variable be set on installation to avoid a GPL dependency.
 ENV SLUGIFY_USES_TEXT_UNIDECODE yes
-RUN git clone https://github.com/apache/incubator-airflow.git temp_airflow
+
+# Note. Increase this number to force rebuilding to the latest dependencies
+ENV REBUILD_AIRFLOW_BREEZE_VERSION=4
+
+ARG AIRFLOW_REPO_URL=https://github.com/apache/incubator-airflow
+ARG AIRFLOW_REPO_BRANCH=master
+
+RUN echo Checking out airflow source from ${AIRFLOW_REPO_URL}, branch: ${AIRFLOW_REPO_BRANCH}
+RUN git clone ${AIRFLOW_REPO_URL} temp_airflow
+RUN cd temp_airflow && git checkout ${AIRFLOW_REPO_BRANCH}
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow27 \
-    && pip install -e .[devel_ci]
+    && pip install -e .[devel_gcp,postgres]
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow36 \
-    && pip install -e .[devel_ci]
+    && pip install -e .[devel_gcp,postgres]
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow35 \
-    && pip install -e .[devel_ci]
+    && pip install -e .[devel_gcp,postgres]
 
+RUN apt-get update && apt-get install -y --no-install-recommends jq && apt-get clean
 RUN rm -rf temp_airflow
 
 RUN mkdir -pv /airflow/output
