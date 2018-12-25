@@ -62,7 +62,7 @@ done
 popd
 
 pushd ${AIRFLOW_BREEZE_NOTIFICATIONS_DIR}
-FILES=$(ls */variables.yaml 2>/dev/null || true)
+FILES=$(ls */secret.variables.yaml 2>/dev/null || true)
 for FILE in ${FILES}
 do
   gcloud kms encrypt --plaintext-file ${FILE} --ciphertext-file ${FILE}.enc \

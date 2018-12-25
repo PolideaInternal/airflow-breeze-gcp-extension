@@ -65,7 +65,7 @@ popd
 if [[ -d ${AIRFLOW_BREEZE_NOTIFICATIONS_DIR} ]]; then
     echo "Decrypting variables from ${AIRFLOW_BREEZE_NOTIFICATIONS_DIR} dir"
     pushd ${AIRFLOW_BREEZE_NOTIFICATIONS_DIR}
-    for FILE in */variables.yaml.enc
+    for FILE in */*.enc
     do
       gcloud kms decrypt --plaintext-file $(dirname ${FILE})/$(basename ${FILE} .enc) \
          --ciphertext-file ${FILE} \

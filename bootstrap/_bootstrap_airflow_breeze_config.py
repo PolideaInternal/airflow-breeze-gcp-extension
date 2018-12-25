@@ -454,7 +454,7 @@ def copy_configuration_directory():
 def encrypt_notification_configuration_files():
     for root, dirs, files in os.walk(os.path.join(TARGET_DIR)):
         for file in files:
-            if file.endswith("variables.yaml"):
+            if file.startswith("secret"):
                 encrypt_file(os.path.join(root, file))
 
 
