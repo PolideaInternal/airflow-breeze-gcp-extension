@@ -17,6 +17,8 @@
 # under the License.
 steps:
 - name: 'gcr.io/cloud-builders/docker'
+  args: [ 'pull', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}']
+- name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
           '--build-arg',
           'AIRFLOW_REPO_URL=https://github.com/PolideaInternal/incubator-airflow.git',
