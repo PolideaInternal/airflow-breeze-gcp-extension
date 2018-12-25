@@ -131,17 +131,17 @@ RUN cd temp_airflow && git checkout ${AIRFLOW_REPO_BRANCH}
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow27 \
-    && pip install -e .[devel_gcp,postgres]
+    && pip install -e .[devel_ci]
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow36 \
-    && pip install -e .[devel_gcp,postgres]
+    && pip install -e .[devel_ci]
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow35 \
-    && pip install -e .[devel_gcp,postgres]
+    && pip install -e .[devel_ci]
 
 RUN apt-get update && apt-get install -y --no-install-recommends jq && apt-get clean
 RUN rm -rf temp_airflow
