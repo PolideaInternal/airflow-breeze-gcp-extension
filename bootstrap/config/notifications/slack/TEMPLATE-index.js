@@ -141,7 +141,7 @@ async function createSlackMessage(build) {
     const data = commit_info.data;
     console.log(data);
     attachments[0].fields.push({
-        value: `Branch: <https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/tree/${branch_name}| Branch ${branch_name}>`,
+        value: `Branch: <https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/tree/${branch_name}| ${branch_name}>`,
         short: true
     });
     attachments[0].fields.push({
