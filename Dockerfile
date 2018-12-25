@@ -128,7 +128,9 @@ RUN echo Checking out airflow source from ${AIRFLOW_REPO_URL}, branch: ${AIRFLOW
 RUN git clone ${AIRFLOW_REPO_URL} temp_airflow
 RUN cd temp_airflow && git checkout ${AIRFLOW_REPO_BRANCH}
 
+# Speed up the installation of cassandra driver
 ENV CASS_DRIVER_BUILD_CONCURRENCY=8
+ENV CASS_DRIVER_NO_CYTHON=1
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
