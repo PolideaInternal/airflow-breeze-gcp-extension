@@ -1,5 +1,7 @@
 const {Storage} = require('@google-cloud/storage');
 const {PubSub} = require('@google-cloud/pubsub');
+const Octokit = require('@octokit/rest');
+
 let ps;
 
 const IncomingWebhook = require('@slack/client').IncomingWebhook;
@@ -7,6 +9,7 @@ const IncomingWebhook = require('@slack/client').IncomingWebhook;
 const GCS_BUCKET = process.env.GCS_BUCKET;
 const REPO_NAME = process.env.REPO_NAME;
 const PROJECT_ID = process.env.PROJECT_ID;
+const GITHUB_ORGANIZATION = process.env.GITHUB_ORGANIZATION;
 
 const webhook = new IncomingWebhook(process.env.SLACK_HOOK);
 const test_suites = process.env.AIRFLOW_BREEZE_TEST_SUITES.split(" ");
@@ -16,6 +19,7 @@ const storage = new Storage({
 });
 
 const bucket = storage.bucket(GCS_BUCKET);
+const octokit = new Octokit();
 
 // subscribe is the main function called by Cloud Functions.
 module.exports.slack_notify = async (data, context) => {
@@ -38,11 +42,12 @@ module.exports.slack_notify = async (data, context) => {
         console.log("#########################################");
 
         if (status.indexOf(build.status) === -1) {
-            console.log(`Skipping slack notification as ${build.status} is wrong`);
+            console.log(`Skipping slack notification of not interesting ${build.status} state. Interesting states: ${status}`);
             return;
         }
-        if (build.source.repoSource.repoName !== REPO_NAME) {
-            console.log(`Skipping slack notification as ${build.source.repoSource.repoName} != ${REPO_NAME}`);
+        if (build.substitutions === undefined || build.substitutions.REPO_NAME === undefined ||
+            build.substitutions.REPO_NAME !==  REPO_NAME) {
+            console.log(`Skipping slack notification on substitutions = ${build.substitutions}`);
             return;
         }
         // Send message to Slack
@@ -55,6 +60,7 @@ module.exports.slack_notify = async (data, context) => {
 
 async function get_test_suite_status(build, test_suite) {
     const failure_file = bucket.file(`${build.id}/tests/${test_suite}-failure.txt`);
+    const success_file = bucket.file(`${build.id}/tests/${test_suite}-success.txt`);
     try {
         await failure_file.download({destination: `/tmp/${test_suite}-failure.txt`});
         // Yeah. if we can get the file, it means it was a failure :)
@@ -65,18 +71,42 @@ async function get_test_suite_status(build, test_suite) {
         }
     } catch (error) {
         console.log(error);
-        // Yeah. Error retrieving file indicates that it was success :)
-        return {
-            title: `${test_suite} tests [SUCCESS]`,
-            title_link: `https://storage.googleapis.com/${GCS_BUCKET}/${build.id}/tests/${test_suite}.xml.html`,
-            color: 'good'
+        try {
+            await success_file.download({destination: `/tmp/${test_suite}-success.txt`});
+            return {
+                title: `${test_suite} tests [SUCCESS]`,
+                title_link: `https://storage.googleapis.com/${GCS_BUCKET}/${build.id}/tests/${test_suite}.xml.html`,
+                color: 'good'
+            }
+        } catch (error) {
+            console.log(error);
+            console.log(`Neither success nor failure file found. The test suite ${test_suite} was not run. Skipping it`);
+            return undefined;
         }
+    }
+}
+
+async function get_documentation_attachment(build, attachments) {
+    const documentation_index_file = bucket.file(`${build.id}/docs/index.html`);
+    try {
+        await documentation_index_file.download({destination: `/tmp/index.html`});
+        attachments[0].fields.push({
+            value: `<https://storage.googleapis.com/${GCS_BUCKET}/${build.id}/docs/index.html| Documentation>`,
+            short: true
+        });
+    } catch (error) {
+        console.log(error);
+        console.log("Documentation index is missing. Skipping documentation attachment.");
     }
 }
 
 // createSlackMessage create a message from a build object.
 async function createSlackMessage(build) {
     let color = 'warning';
+    let repo_name = build.substitutions.REPO_NAME;
+    let branch_name = build.substitutions.BRANCH_NAME;
+    let tag_name = build.substitutions.TAG_NAME;
+    let commit_sha = build.substitutions.COMMIT_SHA;
     if (build.status === "SUCCESS") {
         color = 'good'
     } else if (build.status === 'FAILURE' || build.status === 'INTERNAL_ERROR' || build.status === 'TIMEOUT') {
@@ -91,7 +121,7 @@ async function createSlackMessage(build) {
                     short: true
                 },
                 {
-                    value: `<https://console.cloud.google.com/cloud-build/builds/${build.id}?project=${build.projectId}| Google Cloud Build>`,
+                    value: `<https://console.cloud.google.com/cloud-build/builds/${build.id}?project=${build.projectId}| Google Cloud Build console>`,
                     short: true
                 },
                 {
@@ -105,26 +135,38 @@ async function createSlackMessage(build) {
             ]
         },
     ];
+    await get_documentation_attachment(build, attachments);
+
+    const commit_info = await octokit.repos.getCommit({owner: GITHUB_ORGANIZATION, repo: repo_name, sha: commit_sha});
+    const data = commit_info.data;
+    console.log(data);
+    attachments[0].fields.push({
+        value: `<https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/tree/${branch_name}| GitHub ${repo_name}: ${branch_name}`,
+        short: true
+    });
+    attachments[0].fields.push({
+        value: `<https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/commit/${commit_sha}| ${data.commit.message.split('\n')[0]}`,
+    });
 
     let i;
     for (i = 0; i < test_suites.length; i++) {
-        attachments.push(await get_test_suite_status(build, test_suites[i]));
+        let attachment_test_suite = await get_test_suite_status(build, test_suites[i]);
+        if (attachment_test_suite !== undefined) {
+            attachments.push(attachment_test_suite);
+        }
     }
 
-    attachments.push({
-        title: 'Documentation',
-        title_link: `https://storage.googleapis.com/${GCS_BUCKET}/${build.id}/docs/index.html`,
-        color: 'good'
-    });
-    let ref = build.source.repoSource.branchName;
-    if (ref === undefined) {
-        ref = build.source.repoSource.tagName
-    }
-    if (ref === undefined) {
-        ref = build.source.repoSource.commitSha
-    }
     return {
-        text: `Build in project \`${build.projectId}\` for repo: \`${build.source.repoSource.repoName}\`\nStatus: \`${build.status}\`\nBranch: \`${ref}\`\nBuild id: \`${build.id}\``,
+        text:
+            `Build in project \`${build.projectId}\` for repo: \`${repo_name}\`
+ Status: \`${build.status}\`
+ Branch: \`${branch_name}\`
+ Tag: \`${tag_name}\`
+ Commit SHA: \`${commit_sha}\`
+ Commit message: \`${data.commit.message.split('\n')[0]}\`
+ Committer: \`${data.commit.committer.name}\`
+ Author: \`${data.commit.author.name}\`
+ Build id: \`${build.id}\``,
         mrkdwn: true,
         attachments: attachments
     }

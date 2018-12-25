@@ -1,3 +1,2 @@
-{{ VARIABLES_YAML }}
-package-lock.json
 node_modules
+all.variables.yaml

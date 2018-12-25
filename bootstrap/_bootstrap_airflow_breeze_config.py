@@ -483,7 +483,6 @@ if __name__ == '__main__':
 
     get_config_dir(args.workspace)
 
-    VARIABLES['VARIABLES_YAML'] = 'variables.yaml'
     VARIABLES['BUILD_BUCKET_SUFFIX'] = BUILD_BUCKET_SUFFIX
     VARIABLES['TEST_BUCKET_SUFFIX'] = TEST_BUCKET_SUFFIX
 

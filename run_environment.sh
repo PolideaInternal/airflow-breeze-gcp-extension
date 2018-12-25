@@ -677,7 +677,6 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     cat ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env
     echo
 
-    echo
     echo "*************************************************************************"
     echo
     echo " Entering airflow development environment in docker"
@@ -699,6 +698,20 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo " PORT FORWARDING               = ${DOCKER_PORT_ARG}"
     echo
     echo "*************************************************************************"
+
+
+    echo "*************************************************************************"
+    echo
+    echo " Comparing your current configuration with bootstrap configuration"
+    echo
+    set +e
+    ${MY_DIR}/compare_workspace_with_bootstrap.py
+    RES=$?
+    set -e
+    if [[ ${RES} != 0 ]]; then
+         ${MY_DIR}/confirm "Proceeding without alignment"
+    fi
+    echo
 
     run_container
 fi
