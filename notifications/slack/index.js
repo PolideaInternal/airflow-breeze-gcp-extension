@@ -106,7 +106,7 @@ async function get_documentation_attachment(build, attachments) {
 // createSlackMessage create a message from a build object.
 async function createSlackMessage(build) {
     let color = 'warning';
-    let repo_name = build.substitutions.INCUBATOR_AIRFLOW_REPO_NAME;
+    let repo_name = build.substitutions.REPO_NAME;
     let branch_name = build.substitutions.BRANCH_NAME;
     let tag_name = build.substitutions.TAG_NAME;
     let commit_sha = build.substitutions.COMMIT_SHA;
