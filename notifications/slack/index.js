@@ -45,7 +45,7 @@ module.exports.slack_notify = async (data, context) => {
             console.log(`Skipping slack notification of not interesting ${build.status} state. Interesting states: ${status}`);
             return;
         }
-        if (build.substitutions === undefined || build.substitutions.INCUBATOR_AIRFLOW_REPO_NAME === undefined ||
+        if (build.substitutions === undefined || build.substitutions.REPO_NAME === undefined ||
             build.substitutions.REPO_NAME !==  INCUBATOR_AIRFLOW_REPO_NAME) {
             console.log(`Skipping slack notification on substitutions = ${JSON.stringify(build.substitutions)}`);
             return;
