@@ -230,6 +230,18 @@ def bind_service_account_user_role_for_appspot_account(service_account_email):
         )
 
 
+def add_default_acl_to_bucket(bucket_name, role, service_account):
+    print("Adding default ACL for service account {} of role {} in bucket {}".
+          format(service_account, role, bucket_name))
+    return logged_call(
+        [
+            'gsutil', 'defacl', 'ch', '-u',
+            '{}:{}'.format(service_account, role),
+            'gs://{}'.format(bucket_name)
+        ]
+    )
+
+
 def grant_storage_role_to_service_account(bucket_name, role, service_account):
     print("Granting the service account {} "
           "role storage.{} to bucket {}".
@@ -477,6 +489,27 @@ def encrypt_notification_configuration_files():
                 encrypt_file(os.path.join(root, file))
 
 
+def create_and_configure_buckets():
+    build_bucket = "{}{}".format(project_id, BUILD_BUCKET_SUFFIX)
+    test_bucket = "{}{}".format(project_id, TEST_BUCKET_SUFFIX)
+    create_bucket(build_bucket,
+                  recreate_bucket=args.recreate_project, read_all=True,
+                  lifecycle_rule=BUILD_LIFECYCLE_RULE_FILE)
+    create_bucket(test_bucket,
+                  recreate_bucket=args.recreate_project, read_all=False,
+                  files_dir=TEST_FILES_DIR)
+    grant_storage_role_to_service_account(
+        build_bucket,
+        "objectCreator",
+        "{}@appspot.gserviceaccount.com".format(project_id))
+    gcp_cloudsql_service_account = "gcp-cloudsql-account@{}.iam.gserviceaccount.com".\
+        format(project_id)
+    grant_storage_role_to_service_account(
+        test_bucket,
+        "admin",
+        gcp_cloudsql_service_account)
+
+
 if __name__ == '__main__':
 
     if sys.version_info < (3, 0):
@@ -576,26 +609,7 @@ if __name__ == '__main__':
 
     start_section("Creating build and test bucket for project {}".format(project_id))
 
-    build_bucket = "{}{}".format(project_id, BUILD_BUCKET_SUFFIX)
-    test_bucket = "{}{}".format(project_id, TEST_BUCKET_SUFFIX)
-    create_bucket(build_bucket,
-                  recreate_bucket=args.recreate_project, read_all=True,
-                  lifecycle_rule=BUILD_LIFECYCLE_RULE_FILE)
-    create_bucket(test_bucket,
-                  recreate_bucket=args.recreate_project, read_all=False,
-                  files_dir=TEST_FILES_DIR)
-    grant_storage_role_to_service_account(
-        build_bucket,
-        "objectCreator",
-        "{}@appspot.gserviceaccount.com".format(project_id))
-    grant_storage_role_to_service_account(
-        test_bucket,
-        "admin",
-        "gcp-cloudsql-account@{}.iam.gserviceaccount.com".format(project_id))
-    grant_storage_role_to_service_account(
-        test_bucket,
-        "legacyObjectOwner",
-        "gcp-cloudsql-account@{}.iam.gserviceaccount.com".format(project_id))
+    create_and_configure_buckets()
     end_section()
 
     start_section("Configuring Cloud Source Repository authentication")
