@@ -35,4 +35,4 @@ if __name__ == '__main__':
                  '--keyring=incubator-airflow '
                  '--project={} '
                  '--key=service_accounts_crypto_key'.format(val, project_id)])
-            print("{}={}".format(decrypted_key, decrypted_val))
+            print("{}={}".format(decrypted_key, decrypted_val.decode('utf-8')))

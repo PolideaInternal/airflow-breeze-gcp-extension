@@ -7,9 +7,9 @@ let ps;
 const IncomingWebhook = require('@slack/client').IncomingWebhook;
 
 const GCS_BUCKET = process.env.GCS_BUCKET;
-const REPO_NAME = process.env.REPO_NAME;
+const INCUBATOR_AIRFLOW_REPO_NAME = process.env.INCUBATOR_AIRFLOW_REPO_NAME;
 const PROJECT_ID = process.env.PROJECT_ID;
-const GITHUB_ORGANIZATION = process.env.GITHUB_ORGANIZATION;
+const AIRFLOW_BREEZE_GITHUB_ORGANIZATION = process.env.AIRFLOW_BREEZE_GITHUB_ORGANIZATION;
 
 const webhook = new IncomingWebhook(process.env.SLACK_HOOK);
 const test_suites = process.env.AIRFLOW_BREEZE_TEST_SUITES.split(" ");
@@ -45,8 +45,8 @@ module.exports.slack_notify = async (data, context) => {
             console.log(`Skipping slack notification of not interesting ${build.status} state. Interesting states: ${status}`);
             return;
         }
-        if (build.substitutions === undefined || build.substitutions.REPO_NAME === undefined ||
-            build.substitutions.REPO_NAME !==  REPO_NAME) {
+        if (build.substitutions === undefined || build.substitutions.INCUBATOR_AIRFLOW_REPO_NAME === undefined ||
+            build.substitutions.INCUBATOR_AIRFLOW_REPO_NAME !==  INCUBATOR_AIRFLOW_REPO_NAME) {
             console.log(`Skipping slack notification on substitutions = ${build.substitutions}`);
             return;
         }
@@ -103,7 +103,7 @@ async function get_documentation_attachment(build, attachments) {
 // createSlackMessage create a message from a build object.
 async function createSlackMessage(build) {
     let color = 'warning';
-    let repo_name = build.substitutions.REPO_NAME;
+    let repo_name = build.substitutions.INCUBATOR_AIRFLOW_REPO_NAME;
     let branch_name = build.substitutions.BRANCH_NAME;
     let tag_name = build.substitutions.TAG_NAME;
     let commit_sha = build.substitutions.COMMIT_SHA;
@@ -137,15 +137,15 @@ async function createSlackMessage(build) {
     ];
     await get_documentation_attachment(build, attachments);
 
-    const commit_info = await octokit.repos.getCommit({owner: GITHUB_ORGANIZATION, repo: repo_name, sha: commit_sha});
+    const commit_info = await octokit.repos.getCommit({owner: AIRFLOW_BREEZE_GITHUB_ORGANIZATION, repo: repo_name, sha: commit_sha});
     const data = commit_info.data;
     console.log(data);
     attachments[0].fields.push({
-        value: `Branch: <https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/tree/${branch_name}| ${branch_name}>`,
+        value: `Branch: <https://github.com/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${repo_name}/tree/${branch_name}| ${branch_name}>`,
         short: true
     });
     attachments[0].fields.push({
-        value: `Commit: <https://github.com/${GITHUB_ORGANIZATION}/${repo_name}/commit/${commit_sha}| ${data.commit.message.split('\n')[0]}>`,
+        value: `Commit: <https://github.com/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${repo_name}/commit/${commit_sha}| ${data.commit.message.split('\n')[0]}>`,
     });
 
     let i;

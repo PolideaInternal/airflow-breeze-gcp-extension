@@ -705,7 +705,10 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo " Comparing your current configuration with bootstrap configuration"
     echo
     set +e
-    ${MY_DIR}/compare_workspace_with_bootstrap.py
+    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" &&
+     source "${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env" &&
+     set +a &&
+     ${MY_DIR}/compare_workspace_with_bootstrap.py)
     RES=$?
     set -e
     if [[ ${RES} != 0 ]]; then

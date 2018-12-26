@@ -88,15 +88,17 @@ def copy_file(source_path, destination_path):
     # bootstrapping works without external dependencies. Also built-in templating
     # is not good enough because it uses $variable syntax that would clash with
     # Bash substitution we use in a number of places. In order to avoid escaping
-    # The '$' we use Jinja2 form of template variables '{{ VARIABLE }}'
-    # Note strict spaces (!) instead and replace it with built-in replace mechanism
+    # The '$' we use Jinja2 form of template variables '{{ VARIABLE }}' or
+    # '{{VARIABLE}}'. Note strict single spaces or lack of them!
 
     if os.path.isfile(source_path):
         with open(source_path, "r") as input_file:
             content = input_file.read()
         for key, value in VARIABLES.items():
-            string_to_replace = '{{ ' + key + ' }}'
-            content = content.replace(string_to_replace, value)
+            string_to_replace1 = '{{ ' + key + ' }}'
+            content = content.replace(string_to_replace1, value)
+            string_to_replace2 = '{{' + key + '}}'
+            content = content.replace(string_to_replace2, value)
         with open(destination_path, "w") as output_file:
             output_file.write(content)
 
@@ -394,8 +396,8 @@ def get_random_password():
 def read_manual_parameters(regenerate_passwords):
     global IGNORE_SLACK
     VARIABLES['GCP_PROJECT_ID'] = project_id
-    if not VARIABLES.get('REPO_NAME'):
-        VARIABLES['REPO_NAME'] = 'incubator-airflow'
+    if not VARIABLES.get('INCUBATOR_AIRFLOW_REPO_NAME'):
+        VARIABLES['INCUBATOR_AIRFLOW_REPO_NAME'] = 'incubator-airflow'
     if regenerate_passwords:
         VARIABLES['GCSQL_MYSQL_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
         VARIABLES['GCSQL_POSTGRES_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
@@ -403,10 +405,13 @@ def read_manual_parameters(regenerate_passwords):
                    'artifacts are stored (bucket name: {}<SUFFIX>)'.format(project_id))
     read_parameter('TEST_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
                    'test files are stored (bucket name: {}<SUFFIX>)'.format(project_id))
-    read_parameter('GITHUB_ORGANIZATION', 'Your GitHub user/organization name')
-    read_parameter('REPO_NAME', 'Name of your repository in your user/organization')
-    setup_slack_notifications = input("Setup Slack notifications ? (y/n)")
-    if setup_slack_notifications == 'y' or setup_slack_notifications == 'Y':
+    read_parameter('AIRFLOW_BREEZE_GITHUB_ORGANIZATION',
+                   'Your GitHub user/organization name')
+    read_parameter('INCUBATOR_AIRFLOW_REPO_NAME',
+                   'Name of your repository in your user/organization')
+    setup_slack_notifications = input("Setup Slack notifications ? (y/n) [y]")
+    if setup_slack_notifications == 'y' or setup_slack_notifications == 'Y' \
+            or setup_slack_notifications == '':
         read_parameter('SLACK_HOOK', 'Slack hook to post Cloud Build status - usually '
                        'https://hooks.slack.com/services/... ')
         VARIABLES['SLACK_HOOK_ENCRYPTED'] = encrypt_value(VARIABLES.get('SLACK_HOOK'))

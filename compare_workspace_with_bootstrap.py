@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import difflib
 import errno
 import os
 import sys
@@ -28,6 +29,8 @@ TEMPLATE_PREFIX = 'TEMPLATE-'
 MY_DIR = os.path.dirname(__file__)
 
 confirm = False
+
+VARIABLES = {}
 
 
 def set_confirm():
@@ -117,32 +120,57 @@ def compare_variable_keys(variable_file, bootstrap_variable_file):
         print("!" * 80)
 
 
+def process_templates(content):
+    new_content = []
+    for line in content:
+        for key, value in VARIABLES.items():
+            string_to_replace1 = '{{ ' + key + ' }}'
+            line = line.replace(string_to_replace1, value)
+            string_to_replace2 = '{{' + key + '}}'
+            line = line.replace(string_to_replace2, value)
+        new_content.append(line)
+    return new_content
+
+
 def check_all_files(config_directory, bootstrap_config_directory):
     real_config_path = os.path.realpath(config_directory)
     for root, dirs, fnames in os.walk(top=real_config_path, topdown=True):
         dirs[:] = [d for d in dirs if d not in ['node_modules', '.git', 'keys']]
         for f in fnames:
-            if "variables" in f or f.endswith(".iml"):
-                continue
             file_path = os.path.join(root, f)
+            if "decrypted_variables" in f or f.endswith('.enc') or \
+                    f == 'all.variables.yaml' \
+                    or f.endswith(".iml") or os.path.islink(file_path):
+                continue
             bootstrap_path = os.path.join(
                 bootstrap_config_directory + root[len(real_config_path):],
                 TEMPLATE_PREFIX + f)
             print("Comparing {} <> {}".format(file_path, bootstrap_path))
-            try:
-                subprocess.check_call(["diff", bootstrap_path, file_path])
-            except subprocess.CalledProcessError:
+            with open(bootstrap_path, "rt") as bootstrap_file:
+                text_bootstrap = bootstrap_file.readlines()
+            with open(file_path, "rt") as config_file:
+                text_config = config_file.readlines()
+            # Check if the content is the same after we process it using variables
+            processed_bootstrap = process_templates(text_bootstrap)
+            if text_config != processed_bootstrap:
                 set_confirm()
                 print("!" * 80)
                 print()
-                print("The file in your workspace {} is different than in bootstrap {}".
+                print("The file in your workspace {} is different than in "
+                      "bootstrap {} after processing with current variables".
                       format(file_path, bootstrap_path))
+                print()
+                for line in difflib.unified_diff(text_config,
+                                                 processed_bootstrap):
+                    print(line)
+                print()
                 print("Please make sure to align them!")
                 print()
                 print("!" * 80)
 
 
 if __name__ == '__main__':
+    VARIABLES.update(os.environ)
     _project_id, _workspace_dir, _config_dir, _keys_dir, _variable_file = \
         get_current_workspace_info()
     _bootstrap_config_dir = os.path.join(MY_DIR, "bootstrap", "config")
