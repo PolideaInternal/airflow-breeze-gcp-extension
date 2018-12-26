@@ -46,8 +46,8 @@ module.exports.slack_notify = async (data, context) => {
             return;
         }
         if (build.substitutions === undefined || build.substitutions.INCUBATOR_AIRFLOW_REPO_NAME === undefined ||
-            build.substitutions.INCUBATOR_AIRFLOW_REPO_NAME !==  INCUBATOR_AIRFLOW_REPO_NAME) {
-            console.log(`Skipping slack notification on substitutions = ${build.substitutions}`);
+            build.substitutions.REPO_NAME !==  INCUBATOR_AIRFLOW_REPO_NAME) {
+            console.log(`Skipping slack notification on substitutions = ${JSON.stringify(build.substitutions)}`);
             return;
         }
         // Send message to Slack
