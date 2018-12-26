@@ -140,7 +140,7 @@ SERVICE_ACCOUNTS = [
          account_name='gcp-storage-account',
          account_description='Google Cloud Storage account',
          roles=['roles/storage.admin'],
-         services=['storage-api.googleapis.com', 'storage-components.googleapis.com'],
+         services=['storage-api.googleapis.com', 'storage-component.googleapis.com'],
          appspot_service_account_impersonation=False),
 ]
 
@@ -228,6 +228,20 @@ def bind_service_account_user_role_for_appspot_account(service_account_email):
                 '--role', 'roles/iam.serviceAccountUser'
             ], stdout=FNULL
         )
+
+
+def grant_storage_role_to_service_account(bucket_name, role, service_account):
+    print("Granting the service account {} "
+          "role storage.{} to bucket {}".
+          format(service_account, role, bucket_name))
+    return logged_call(
+        [
+            'gsutil', 'iam', 'ch',
+            'serviceAccount:{}:{}'.
+            format(service_account, role),
+            'gs://{}'.format(bucket_name)
+        ]
+    )
 
 
 def bind_role_to_service_account(service_account_email, role):
@@ -561,12 +575,23 @@ if __name__ == '__main__':
     end_section()
 
     start_section("Creating build and test bucket for project {}".format(project_id))
-    create_bucket("{}{}".format(project_id, BUILD_BUCKET_SUFFIX),
+
+    build_bucket = "{}{}".format(project_id, BUILD_BUCKET_SUFFIX)
+    test_bucket = "{}{}".format(project_id, TEST_BUCKET_SUFFIX)
+    create_bucket(build_bucket,
                   recreate_bucket=args.recreate_project, read_all=True,
                   lifecycle_rule=BUILD_LIFECYCLE_RULE_FILE)
-    create_bucket("{}{}".format(project_id, TEST_BUCKET_SUFFIX),
+    create_bucket(test_bucket,
                   recreate_bucket=args.recreate_project, read_all=False,
                   files_dir=TEST_FILES_DIR)
+    grant_storage_role_to_service_account(
+        build_bucket,
+        "objectCreator",
+        "{}@appspot.gserviceaccount.com".format(project_id))
+    grant_storage_role_to_service_account(
+        test_bucket,
+        "admin",
+        "gcp-cloudsql-account@{}.iam.gserviceaccount.com".format(project_id))
     end_section()
 
     start_section("Configuring Cloud Source Repository authentication")

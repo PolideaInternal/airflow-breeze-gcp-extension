@@ -38,7 +38,10 @@ module.exports.slack_notify = async (data, context) => {
         console.log(`Processing build: ${build.id}`);
         console.log(`Metadata: ${metadata}`);
         console.log("#########################################");
-        console.log(JSON.stringify(build));
+        const build_resource_content = JSON.stringify(build);
+        const build_resource_file = bucket.file(`${build.id}/build_resource.json`);
+        await build_resource_file.save(build_resource_content);
+        console.log(`The build resource is saved at https://storage.googleapis.com/${GCS_BUCKET}/${build.id}/build_resource.json`);
         console.log("#########################################");
 
         if (status.indexOf(build.status) === -1) {
