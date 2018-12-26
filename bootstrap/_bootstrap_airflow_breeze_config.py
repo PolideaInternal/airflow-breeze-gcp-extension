@@ -592,6 +592,10 @@ if __name__ == '__main__':
         test_bucket,
         "admin",
         "gcp-cloudsql-account@{}.iam.gserviceaccount.com".format(project_id))
+    grant_storage_role_to_service_account(
+        test_bucket,
+        "legacyObjectOwner",
+        "gcp-cloudsql-account@{}.iam.gserviceaccount.com".format(project_id))
     end_section()
 
     start_section("Configuring Cloud Source Repository authentication")
