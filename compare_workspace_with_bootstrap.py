@@ -162,7 +162,8 @@ def check_all_files(config_directory, bootstrap_config_directory):
                 print()
                 for line in difflib.unified_diff(text_config,
                                                  processed_bootstrap):
-                    print(line)
+                    sys.stdout.write(line)  # EOL is there already
+                    sys.stdout.flush()
                 print()
                 print("Please make sure to align them!")
                 print()

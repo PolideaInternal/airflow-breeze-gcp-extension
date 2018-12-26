@@ -80,8 +80,8 @@ def ignore_dirs(src, names):
 def copy_file(source_path, destination_path):
     print('Copying file {} -> {}'.format(
         source_path, destination_path))
-    if destination_path.startswith(TEMPLATE_PREFIX):
-        destination_path = destination_path[len(TEMPLATE_PREFIX):]
+    if TEMPLATE_PREFIX in destination_path:
+        destination_path = destination_path.replace(TEMPLATE_PREFIX, "")
     shutil.copy2(source_path, destination_path)
 
     # We do not use Jinja2 or another templating system because we want to make
