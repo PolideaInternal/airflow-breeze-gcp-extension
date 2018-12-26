@@ -100,12 +100,29 @@ The first project sets up automated build of your own airflow-breeze image (stor
 Google Container Registry) and the second is using this image to perform actual test
 execution - of the tests that you specify that should be run within the environment.
 
-You can also setup automated notification of build results. This is as easy as setting 
-up `airflow-breeze-config` Google Cloud Build trigger to deploy Google Cloud Function.
-You can see the triggers configured at the [Triggers page](https://console.cloud.google.com/cloud-build/triggers)
-This enables Slack notifications that inform you about build status:
+## Setting up Google Cloud  Build notifications
+
+In order to see results from Google Cloud Build, you should setup automated 
+notification of build results (currently you can setup notifications via incoming slack
+webhook). This requires setting up `airflow-breeze-config` Google Cloud Build trigger to 
+deploy Google Cloud Function. You can see the triggers configured at 
+the [Triggers page](https://console.cloud.google.com/cloud-build/triggers)
+
+These are example Slack notifications that inform you about build status:
 
 TODO: Add screenshot
+
+You can follow the links and you have the Summary Page which is publicly available and
+you can share it with others.
+
+You can also modify the code of slack notification function and deploy it manually.
+The code is in your workspace's `airflow-breeze-config/notifications/slack`. In order
+to modify the code, you should run `./deploy_function.bash` first - the function will
+be deployed and the code to the function will be symbolically linked in the 
+`airflow-breeze-config/notifications/slack` directory from the main
+airflow-breeze/notifications/slack directory. You can iterate locally by modifying 
+these sources and running `./deploy-function.bash` but in order to make the change 
+permanent you have to commit it to your fork of `airflow-breeze`.
 
 ## Setting up Travis CI for unit tests
 

@@ -168,6 +168,43 @@ docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
   eval ${CMD}
 }
 
+decrypt_all_files() {
+    ################## Decrypt all files variables #############################
+    pushd ${AIRFLOW_BREEZE_KEYS_DIR}
+    FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
+    echo "Decrypting all new encrypted files"
+    for FILE in ${FILES}
+    do
+      DECRYPTED_FILE=$(basename ${FILE} .enc)
+      if [[ ${FILE} -nt ${DECRYPTED_FILE} ]]; then
+          gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
+             --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+             --project=${AIRFLOW_BREEZE_PROJECT_ID} \
+                && echo Decrypted ${FILE}
+      else
+        echo "Skipping the unchanged and already decrypted ${FILE}"
+      fi
+    done
+    chmod -v og-rw *
+    popd
+    echo
+    echo "All files decrypted! "
+    echo
+}
+
+decrypt_all_variables() {
+    ################## Decrypt all variables #############################
+    echo
+    echo "Decrypting encrypted variables"
+    echo
+    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+     python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
+          ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
+    echo
+    echo "Variables decrypted! "
+    echo
+}
+
 usage() {
       echo """
 
@@ -546,12 +583,16 @@ if [[ ${RECREATE_GCP_PROJECT} == "true" ]]; then
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
        --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}   \
        --recreate-project )
+    decrypt_all_files
+    decrypt_all_variables
 elif [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
     echo && echo "Reconfiguring project in GCP with new secrets and services" && echo &&
     (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
         python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
        --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}  )
+    decrypt_all_files
+    decrypt_all_variables
 fi
 if [[ ${INITIALIZE_LOCAL_VIRTUALENV} == "true" ]]; then
    # Check if we are in virtualenv
@@ -622,39 +663,8 @@ elif [[ -z "$(docker images -q "${IMAGE_NAME}" 2> /dev/null)" ]]; then
 fi
 
 if [[ ${RUN_DOCKER} == "true" ]]; then
-    ################## Decrypt all files variables #############################
-    pushd ${AIRFLOW_BREEZE_KEYS_DIR}
-    FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
-    echo "Decrypting all new encrypted files"
-    for FILE in ${FILES}
-    do
-      DECRYPTED_FILE=$(basename ${FILE} .enc)
-      if [[ ${FILE} -nt ${DECRYPTED_FILE} ]]; then
-          gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
-             --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
-             --project=${AIRFLOW_BREEZE_PROJECT_ID} \
-                && echo Decrypted ${FILE}
-      else
-        echo "Skipping the unchanged and already decrypted ${FILE}"
-      fi
-    done
-    chmod -v og-rw *
-    popd
-    echo
-    echo "All files decrypted! "
-    echo
-    ################## Decrypt all variables #############################
-    echo
-    echo "Decrypting encrypted variables"
-    echo
-    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
-     python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
-          ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
-    echo
-    echo "Variables decrypted! "
-    echo
-
-
+    decrypt_all_files
+    decrypt_all_variables
     ################## Check if key exists #############################################
     if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
         echo

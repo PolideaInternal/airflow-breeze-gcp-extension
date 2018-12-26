@@ -78,10 +78,10 @@ def ignore_dirs(src, names):
 
 
 def copy_file(source_path, destination_path):
-    print('Copying file {} -> {}'.format(
-        source_path, destination_path))
     if TEMPLATE_PREFIX in destination_path:
         destination_path = destination_path.replace(TEMPLATE_PREFIX, "")
+    print('Copying file {} -> {}'.format(
+        source_path, destination_path))
     shutil.copy2(source_path, destination_path)
 
     # We do not use Jinja2 or another templating system because we want to make
@@ -140,7 +140,7 @@ SERVICE_ACCOUNTS = [
          account_name='gcp-storage-account',
          account_description='Google Cloud Storage account',
          roles=['roles/storage.admin'],
-         services=['storage.googleapis.com'],
+         services=['storage-api.googleapis.com', 'storage-components.googleapis.com'],
          appspot_service_account_impersonation=False),
 ]
 
@@ -184,7 +184,7 @@ def encrypt_value(value):
             '--location=global --keyring={} '
             '--key={} --project={} | base64'.format(value, KEYRING, KEY, project_id)
         ]
-    ).decode("utf-8")
+    ).decode("utf-8").strip()
 
 
 def decrypt_value(value):
@@ -459,7 +459,7 @@ def copy_configuration_directory():
 def encrypt_notification_configuration_files():
     for root, dirs, files in os.walk(os.path.join(TARGET_DIR)):
         for file in files:
-            if file.startswith("secret"):
+            if file == "secret.variables.yaml":
                 encrypt_file(os.path.join(root, file))
 
 
@@ -552,7 +552,7 @@ if __name__ == '__main__':
     copy_configuration_directory()
     end_section()
 
-    start_section("Encrypting variables.yaml files in notifications directory")
+    start_section("Encrypting secret_variables.yaml files in notifications directory")
     encrypt_notification_configuration_files()
     end_section()
 
@@ -592,7 +592,8 @@ if __name__ == '__main__':
                   CONFIG_REPO_NAME, project_id))
     logged_call(['git', 'status'], cwd=TARGET_DIR)
     logged_call(['git', 'diff'], cwd=TARGET_DIR)
-    res = input("Confirm committing and pushing the airflow-breeze-config repo [y/n] ? ")
+    res = input("Confirm adding, committing and pushing to "
+                "the airflow-breeze-config repo [y/n] ? ")
     if res == 'y' or res == 'Y':
         commit_and_push_google_cloud_repository(TARGET_DIR,
                                                 initial=create_new_config_repo)
