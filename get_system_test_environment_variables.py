@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import errno
 import os
+import random
+import string
+
 import subprocess
 
 ENCRYPTED_SUFFIX = '_ENCRYPTED'
@@ -30,10 +33,18 @@ def add_variable(variable_name, variable_names, all_variables, value):
 
 
 def process_environment_variables():
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))
+    last_random_file = os.path.join(current_file_dir, ".random")
+    if os.path.isfile(last_random_file):
+        with open(last_random_file, "r") as f:
+            last_random_num = f.readline()
+    else:
+        last_random_num = ''.join(random.choice(string.digits) for _ in range(5))
+        with open(last_random_file,"w") as f:
+            f.write(last_random_num)
     lowercase_user = os.environ.get('USER').lower()[:8].encode('ascii',
                                                                errors='ignore').decode(
-        'ascii')
-    current_file_dir = os.path.dirname(os.path.abspath(__file__))
+        'ascii') + last_random_num
     workspace_file = os.path.join(current_file_dir, ".workspace")
     try:
         with open(workspace_file) as f:
