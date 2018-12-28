@@ -153,9 +153,11 @@ RUN rm -rf temp_airflow
 RUN mkdir -pv /airflow/output
 
 ## Add config and scripts
-COPY airflow.cfg /airflow
-COPY _init.sh /airflow
-COPY _setup_gcp_connection.py /airflow
-COPY _decrypt_encrypted_variables.py /airflow
-COPY _bash_profile.sh /root/.bash_profile
-COPY _inputrc /root/.inputrc
+COPY airflow.cfg /airflow/airflow.cfg
+COPY _init.sh /airflow/_init.sh
+COPY _setup_gcp_key.sh /airflow/_setup_gcp_key.sh
+COPY _create_links.sh /airflow/_create_links.sh
+COPY _setup_gcp_connection.py /airflow/_setup_gcp_connection.py
+COPY _decrypt_encrypted_variables.py /airflow/_decrypt_encrypted_variables.py
+COPY _bash_aliases /root/.bash_aliases
+COPY _inputrc /root/.inputrcalias

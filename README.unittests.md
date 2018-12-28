@@ -20,31 +20,18 @@ using `./run_environment.sh --initialize-local-virtualenv`. Then in your project
 configuration you should select the virtualenv you initialized as the project's default
 virtualenv.
 
-After doing so, you can use the usual "Run Test" option of the IDE.
+After setting up the environment, you can use the usual "Run Test" option of the IDE.
 
 ![Run unittests](images/run_unittests.png)
 
-Note that some unit tests (and System Tests) require `AIRFLOW__CORE__UNIT_TEST_MODE`
-environment variable set to `'True'`. If you do not set the variable, the tests will
-warn you to do so.
-
-You can set the variable in "Run Configuration" of particular test you want to run:
-
-![Unit test mode](images/unit_test_mode.png)
-
-However it's recommended that you set it in the Template/Python/Unittests, this way
-all new tests will have the variable automatically set.
-
-![Templates](images/templates.png)
-
-![Templates unittests](images/templates-unittests.png)
-
-## Running Unit Tests in Travis CI (Continuous Integration)
+## Unit Tests in Travis CI (Continuous Integration)
 
 In order to run the tests, ensure you have set up TravisCI on your fork of the Airflow
 GitHub repo. This is described in
-https://github.com/apache/incubator-airflow/blob/master/CONTRIBUTING.md#testing-on-travis-ci
+[Travis CI setup instructions](https://github.com/apache/incubator-airflow/blob/master/CONTRIBUTING.md#testing-on-travis-ci)
 
 This will make all unit tests to be executed automatically for all your
-branches/PR pushes (note that System Tests described below are automatically skipped
-during Travis CI run)
+branches/PR pushes.
+
+System Tests described in [README.systemtests.md](README.systemtests.md) are skipped 
+by default during Travis CI run.

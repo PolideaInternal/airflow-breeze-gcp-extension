@@ -23,6 +23,8 @@
 
 . /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 set -euo pipefail
 
 # Automatically export all variables
@@ -31,7 +33,6 @@ set -a
 # Airflow requires this variable be set during installation to avoid a GPL
 # dependency.
 export SLUGIFY_USES_TEXT_UNIDECODE=yes
-export AIRFLOW_HOME=${AIRFLOW_HOME:=/airflow}
 
 AIRFLOW_BREEZE_CONFIG_DIR="${HOME}/airflow-breeze-config"
 if [[ -f ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env ]]; then
@@ -71,34 +72,28 @@ pip install -e .[devel_ci] \
   && sudo service postgresql start \
   && sudo -u postgres createuser root \
   && sudo -u postgres createdb airflow/airflow.db
+
+export GCP_SERVICE_ACCOUNT_KEY_NAME=${GCP_SERVICE_ACCOUNT_KEY_NAME:=""}
+alias set_gcp_key=". /airflow/_setup_gcp_key.sh"
+
+. ${MY_DIR}/_setup_gcp_key.sh "${GCP_SERVICE_ACCOUNT_KEY_NAME}"
+
+export AIRFLOW_HOME=${AIRFLOW_HOME:=/airflow}
 export AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=${HOME}/airflow-breeze-config}
 export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
-export GCP_SERVICE_ACCOUNT_KEY_NAME=${GCP_SERVICE_ACCOUNT_KEY_NAME:="gcp_compute.json"}
-export GCP_PROJECT_ID=${GCP_PROJECT_ID:="wrongproject"}
-echo
-echo "Activating service account with ${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
-echo
 
-# gcloud login
-if [[ -e "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" ]]; then
-  # Allow application-default login
-  echo "export GOOGLE_APPLICATION_CREDENTIALS=${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" >> ${HOME}/.bashrc
-  gcloud auth activate-service-account \
-       --key-file="${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" \
-       --project=${GCP_PROJECT_ID}
-  ACCOUNT=$(cat "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" | \
-      python -c 'import json, sys; info=json.load(sys.stdin); print(info["client_email"])')
-  gcloud config set account "${ACCOUNT}"
-  gcloud config set project "${GCP_PROJECT_ID}"
-  airflow initdb
-  python /airflow/_setup_gcp_connection.py "${GCP_PROJECT_ID}"
-else
-  echo "WARNING: No key ${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME} found."\
-       " Running without service account credentials."
-fi
+export AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
 
-AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
-
+# Source all environment variables from key dir
+for ENV_FILE in ${GCP_SERVICE_ACCOUNT_KEY_DIR}/*.env
+do
+    if [[ -f ${ENV_FILE} ]]; then
+        source ${ENV_FILE}
+        echo
+        cat ${ENV_FILE}
+        echo
+    fi
+done
 
 if [[ -f ${AIRFLOW_SOURCES}/decrypted_variables.env ]]; then
     set -x
@@ -106,35 +101,6 @@ if [[ -f ${AIRFLOW_SOURCES}/decrypted_variables.env ]]; then
     set +x
 fi
 
-# Source all environment variables from key dir
-for ENV_FILE in ${GCP_SERVICE_ACCOUNT_KEY_DIR}/*.env
-do
-    if [[ -f {ENV_FILE} ]]; then
-        set -x
-        source ${ENV_FILE}
-        set +x
-    fi
-done
-
 set +a
-
-AIRFLOW_BREEZE_DAGS_TO_TEST=${AIRFLOW_BREEZE_DAGS_TO_TEST:=""}
-
-if [[ ! -z ${AIRFLOW_BREEZE_DAGS_TO_TEST} ]]; then
-    echo
-    echo "Creating symbolic links to tested DAGs"
-    echo
-
-    for DAG_TO_TEST in ${AIRFLOW_BREEZE_DAGS_TO_TEST}
-    do
-         for FILE in $(ls ${AIRFLOW_SOURCES}/${DAG_TO_TEST})
-         do
-            FILE_BASENAME=$(basename ${FILE})
-            ln -svf "${FILE}" "${AIRFLOW_HOME}"/dags/${FILE_BASENAME}
-         done
-    done
-
-fi
-
 
 eval "${@}"

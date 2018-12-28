@@ -34,25 +34,26 @@ full_key_path = os.path.join(home_dir,
                              "keys",
                              key_file_name)
 if not os.path.isfile(full_key_path):
-  print()
-  print('The key file ' + full_key_path + ' is missing!')
-  print()
-  sys.exit(1)
+    print()
+    print('The key file ' + full_key_path + ' is missing!')
+    print()
+    sys.exit(1)
 
 session = settings.Session()
 try:
-  conn = session.query(models.Connection).filter(
+    # noinspection PyUnresolvedReferences
+    conn = session.query(models.Connection).filter(
       models.Connection.conn_id == 'google_cloud_default')[0]
-  extras = conn.extra_dejson
-  extras[KEYPATH_EXTRA] = full_key_path
-  print('Setting GCP key file to ' + full_key_path)
-  extras[SCOPE_EXTRA] = 'https://www.googleapis.com/auth/cloud-platform'
-  extras[PROJECT_EXTRA] = sys.argv[1]
-  conn.extra = json.dumps(extras)
-  session.commit()
+    extras = conn.extra_dejson
+    extras[KEYPATH_EXTRA] = full_key_path
+    print('Setting GCP key file to ' + full_key_path)
+    extras[SCOPE_EXTRA] = 'https://www.googleapis.com/auth/cloud-platform'
+    extras[PROJECT_EXTRA] = sys.argv[1]
+    conn.extra = json.dumps(extras)
+    session.commit()
 except BaseException as e:
-  print('session error' + str(e))
-  session.rollback()
-  raise
+    print('session error' + str(e))
+    session.rollback()
+    raise
 finally:
-  session.close()
+    session.close()

@@ -15,5 +15,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-. /usr/share/virtualenvwrapper/virtualenvwrapper.sh
+alias set_gcp_key=". /airflow/_setup_gcp_key.sh"

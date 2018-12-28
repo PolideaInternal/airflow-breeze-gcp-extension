@@ -75,8 +75,15 @@ RECREATE_GCP_PROJECT=false
 
 USER=${USER:=""}
 
+RANDOM_FILE=${MY_DIR}/.random
 #################### Test suite is calculated from user name
-AIRFLOW_BREEZE_TEST_SUITE=$(echo ${USER:0:8} | iconv -f utf-8 -t ascii//ignore)
+if [[ ! -f ${RANDOM_FILE} ]]; then
+    printf "%05d" ${RANDOM} > ${RANDOM_FILE}
+fi
+
+RANDOM_NUM=$(cat ${RANDOM_FILE})
+
+AIRFLOW_BREEZE_TEST_SUITE=$(echo ${USER:0:8}${RANDOM} | iconv -f utf-8 -t ascii//ignore)
 
 #################### Helper functions
 

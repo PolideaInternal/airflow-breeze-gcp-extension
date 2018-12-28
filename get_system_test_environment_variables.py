@@ -116,8 +116,6 @@ def process_environment_variables():
 
     # Force enabling of Cloud SQL query tests
     add_variable("GCP_ENABLE_CLOUDSQL_QUERY_TEST", variable_names, all_variables, "True")
-    # Force Unit test mode for the tests
-    add_variable("AIRFLOW__CORE__UNIT_TEST_MODE", variable_names, all_variables, "True")
     return variable_names, all_variables
 
 

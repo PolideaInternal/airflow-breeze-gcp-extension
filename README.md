@@ -53,12 +53,23 @@ You can read more about architecture of the environment in
 Bootstrapping the Google Cloud Platform project, first time setup of your workspace
 and configuration is described in [README.setup.md](README.setup.md)
 
-# Running the container environment
+# Entering the container environment
 
-To run the container, use `./run_environment.sh.` It caches information about the project,
+To run the container, use `./run_environment.sh.`
+
+The first time you enter the environment you will have to specify project,
+workspace and GCP service account key to use. Optionally you can specify
+Python version (2.7, 3.5 or 3.6).
+
+```
+./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE> --key <KEY_NAME> [--python <PYTHON_VERSION>]
+```
+
+When you enter the environment, it caches information about the project,
 workspace, key and python versions used so that next time you do not have to 
-specify it when you run `./run_environment.sh`. You can always override those cached 
-values with using appropriate flags as explained below.
+specify it when you run `./run_environment.sh`. 
+
+You can always override those cached values with using appropriate flags.
 
 When you enter the environment, your source files are mounted inside the docker
 container (in `/workspace` folder) and changes to the files done outside of
@@ -67,31 +78,53 @@ This is a very convenient development environment as you can use your local IDE
 to work on the code and you can keep the environment running all the time 
 and not worry about copying the files.
 
+AIRFLOW_HOME is set to /airflow - and you will find all the logs, dag folder, 
+unit test databases etc. there.
+
+## Changing the service account key without leaving the environment
+
+Once in the environment, you can always change the service account key used by
+running `set_gcp_key <KEY_NAME>`. This will also reset the Postgres database
+and re-link all symbolic links to example DAGs as explained in 
+[README.systemtests.md](README.systemtests.md#Example-DAGs)
+
 ## Running the container with last used configuration
 
-`./run_environment.sh`
+Last used workspace, project, key and python version are used in this case:
+
+```
+./run_environment.sh
+```
+
+## Forwarding port to Airflow's UI
+
+If you want to forward a port for using the webserver, use the --forward-port flag:
+
+```
+./run_environment.sh --forward-port 8080
+```
 
 ## Creating new workspace / changing workspace
 
 If you want to use a different workspace, use the --workspace flag. This will
 automatically create the workspace if the workspace does not exist.
 
-`./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE>`
-
-## Forwarding port to Airflow's UI
-
-If you want to forward a port for using the webserver, use the --forward-port flag:
-
-`./run_environment.sh --forward-port 8080`
+```
+./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE> --key <KEY_NAME>
+```
 
 ## Choosing different service account key
 
 You can select different service account by specifying different key:
 
-`./run_environment.sh --key-name <KEY_NAME>`
+```
+./run_environment.sh --key-name <KEY_NAME>
+```
 
 You can see the list of available keys via
-`./run_environment.sh --key-list`
+```
+./run_environment.sh --key-list
+```
 
 It's a deliberate decision to use separate service accounts for each
 service - this way the service accounts have minimal set of permissions required
@@ -99,6 +132,7 @@ to run particular operators. This allows to test if there are special
 permissions needed to access particular service or run the operator.
 
 ## Choosing different python environment
+
 You can choose a different python environment by `--python` flag (currently you can
 choose 2.7, 3.5 or 3.6 - with 3.6 being default)
 
@@ -108,32 +142,33 @@ You can change project in already created workspace. You will be asked for confi
 as this is a destructive operation - local `airflow-breeze-config` in the workspace
 will be deleted and replaced with project's specific configuration.
 
-`./run_environment.sh --project <GCP_PROJECT_ID> `
+```
+./run_environment.sh --project <GCP_PROJECT_ID>
+```
 
-## Adding new service accounts and reconfiguring project
+## Adding new service accounts
 
 When you want to add a new service account to your project you need to reconfigure the
 project. You need to add your service account with required roles in
 [_bootstrap_airflow_breeze_config.py](bootstrap/_bootstrap_airflow_breeze_config.py)
-and run `./run_environment.sh --reconfigure-gcp-project`
+and run `./run_environment.sh --reconfigure-gcp-project`. 
+See [Reconfiguring the project](README.setup.md#Reconfiguring-the-GCP-project) for details.
 
 This will re-enable all services, will create missing service accounts, reassigns
 roles to the project and reapply all permissions.
 
-## Recreating the project
-In case you want to initialize the project from the scratch, you might do so 
-with `./run_environment.sh --recreate-gcp-project`.
-This is a destructive operation that deletes build history, recreates buckets,
-deletes and recreates all service accounts, generates new encryption keys etc. You 
-can use it at any time when you want to make sure that some previously used credentials
-are not misused as it will use completely new set of credentials for the project.
-In case project is recreated, all team members will have to pull latest version
-of airflow-breeze-config in order to work with the project.
+## Reconfiguring or recreating the project
+
+You can read about reconfiguring and recreating the project in 
+[README.setup.md](README.setup.md#Additional-configuration)
 
 ## Other operations
+
 For a full list of commands supported, use --help flag:
 
-`./run_environment.sh --help`
+```
+./run_environment.sh --help
+```
 
 Those commands allow to manage the image of Airflow Breeze, reconfigure an existing
 project, reconfigure the project, recreate the GCP project with all sensitive data,
@@ -142,15 +177,16 @@ image.
 
 # Testing
 
-There are two ways of testing Airflow Breeze. Unit Tests can be run locally and 
+There are two ways of testing Airflow Breeze. Unit Tests can be run standalone and 
 do not communicate with Google Cloud Platform, where System Tests can be used
-to run tests agains an existing Google Cloud Platform services:
+to run tests against an existing Google Cloud Platform services. Both unit 
+and system tests can be run via local IDE (for example IntelliJ or PyCharm) and 
+via command line using the `airflow-breeze` container.
 
-You can read about running Unit Tests in [README.unittests.md](README.unittests.md)
+You can read more about it:
 
-You can read about running System Tests in [README.systemtests.md](README.systemtests.md)
-
-
+* Running Unit Tests in [README.unittests.md](README.unittests.md)
+* Running System Tests in [README.systemtests.md](README.systemtests.md)
 
 # Cleanup
 
@@ -162,4 +198,3 @@ Note that the disk space will not be actually reclaimed until you run
 `docker system prune`.
 
 You may also delete the workspace folders after you are done with them.
-

@@ -3,7 +3,7 @@
 System tests are used to tests Airflow operators with an existing Google Cloud Platform
 services. Those are e-2-e tests of the operators.
 
-## Example DAGs
+# Example DAGs
 
 The operators you develop should have example DAGs defined that describe the usage
 of the operators, and are used to provide snippets of code for the 
@@ -24,8 +24,10 @@ immediately available to run. You can choose which dags you want to link symboli
 via `AIRFLOW_BREEZE_DAGS_TO_TEST` environment variable in the `variables.env` in 
 `airflow-breeze-config` folder in your workspace.
 
-Most of the DAGs you normally work on are in `/workspace/airflow/example_dags` or
+Most of the DAGs you work on are in `/workspace/airflow/example_dags` or
 `/workspace/airflow/contrib/example_dags/` folder.
+
+# System test classes
 
 It is easiest to run the System Tests from your IDE via specially defined System Test
 classes using the standard python Unit Tests. By convention they are placed in 
@@ -33,43 +35,133 @@ the `*_system.py` modules of corresponding tests files (in `test/contrib/` direc
 Example of such test is `GcpComputeExampleDagsSystemTest`
 in `test/contrib/test_gcp_compute_operator_system.py`.
 
-Such tests in some cases have custom setUp/tearDown routines to set-up the Google
+Such tests in some cases can have custom setUp/tearDown routines to set-up the Google
 Cloud Platform environment - to setup resources that would be costly to keep running
 all the time.
 
-When you run such unit test, the setUp will set everything up - including
-authentication using specified service account and creation of necessary resources in
-GCP in some cases. For example in case of the `GcpComputeExampleDagsSystemTest` the setUp
-creates instances in GCE. After the setup is done the tests run selected example DAG.
-DAG id is specified in the constructor of the test. For example in case
-of `GcpComputeExampleDagsSystemTest` the test runs `example_gcp_compute.py` example DAG.
+When you run such System Test, the setUp will set everything up - including
+authentication using specified service account and resetting the database. 
+In case of custom setUp, it might also create necessary resources in Google Cloud 
+Platform. For example in case of the `GcpComputeExampleDagsSystemTest` 
+the custom setUp creates instances in GCE to perform start/stop operations. 
+After the setup is complete, the tests run selected example DAG.
+
+The DAG id to run is specified as parameter the constructor of the test - by convention
+name of the file has to be the same as dag_id. For example in case
+of `GcpComputeExampleDagsSystemTest` the test runs `example_gcp_compute.py` example DAG
+with `example_gcp_compute` dag id. 
 After the test is done, the tearDown deletes the resources.
 
-The System Tests can have different configuration in different projects. Configuration for
-the tests is stored in `airflow-breeze-config` directory in `variables.env`
+The System Tests have per-project configuration (environment variables)
+Configuration for the tests is stored in  `airflow-breeze-config` directory 
+in `variables.env`.
 
-The System Tests are skipped by default outside of the container environment (for
-example they are skipped in Travis CI). This is controlled by presence of 
-service account keys that are used to authenticate with Google Cloud Platform.
+The System Tests are skipped by default outside of the container environment when
+standard unit tests are run (for example they are skipped in Travis CI). 
+This is controlled by presence of service account keys that are used to 
+authenticate with Google Cloud Platform. Each test service has its own, dedicated
+service account key. Available service account key names can be configured in 
+`test_gcp_base_system_test.py`. You can add new service account via bootstrapping as
+described in [README.md](README.md#Adding-new-service-accounts)
 
-## Running System Tests within the container environment
-
-You can run system tests exactly the same way as unit tests (but they are much slower).
-The container environment has the environment variables setup in the way that they are
-not skipped. Similarly Cloud Build environment is setup in the way to run the tests.
+# Running the System Tests
 
 ## Running System Tests via IDE (IntelliJ)
 
 You run the system tests via IDE in the same way as in case of the normal unit tests
 (see above). The environment variables from last used workspace will be automatically
-sources and used by the test. All System Tests require `AIRFLOW__CORE__UNIT_TEST_MODE`
-environment variable set to `'True'`. If you do not set the variable, the tests will
-warn you to do so.
+sourced and used by the test. Similarly to Unit Tests you need to have virtualenv
+setup and configured and then you can run the tests as usual:
+
+![Run unittests](images/run_unittests.png)
+
+If you have no `AIRFLOW_HOME` variable set the logs, airflow sqlite databases
+and other artifacts are created in your ${HOME}/airflow/ directory.
+
+Note that there are some tests that might require long time setup of costly resources
+and they might need additional setup as described in 
+[System test cases with costly setup phase](#System-test-cases-with-costly-setup-phase)
+
+## Running System Tests within the container environment
+
+You can run the System Tests via standard `nosetests` command. For example
+
+```
+nosetests tests.contrib.operators.test_gcs_acl_operator_system
+```
+
+Note that unlike unit tests, the system tests should not be run 
+using `./run_unit_test.bash`, because they cannot have `AIRFLOW__CORE__UNIT_TEST_MODE` 
+variable set to True and `./run_unit_test.bash` sets the variable.
+
+The logs, airflow sqlite databases and other artifacts are created in /airflow/ directory.
+
+Note that there are some tests that might require long time setup of costly resources
+and they might need additional setup as described in 
+[System test cases with costly setup phase](#System-test-cases-with-costly-setup-phase)
+
+
+## Testing single tasks of DAGs in container environment
+
+This is the fastest and most developer-friendly way of testing your operator while you 
+are developing it. In case special tearDown/setUp is needed - you can run the 
+setUp/tearDown manually using helpers as described in the following chapter.
+
+You can run separate tasks for each dag via:
+
+```
+airflow test <DAG_ID> <TASK_ID> <DATE>
+```
+
+The date has to be in the past and in YYYY-MM-DD form. For example:
+
+```
+airflow test example_gcp_sql_query example_gcp_sql_task_postgres_tcp_id 2018-10-24
+```
+
+This runs the test without using/storing anything in the database of airflow and it
+produces output in the console rather than log files. You can see list of dags and
+tasks via `airflow list_dags` and `airflow list_tasks <DAG_ID>`.
+
+## Executing custom setUp/tearDown manually
+
+In order to run the individual tasks in container environment, custom setUp / tearDown 
+might need to be run before - for example to create GCP resources necessary 
+to run the test. There is a way to run such setUp/tearDown manually via helper scripts. 
+Typically such  helper script is named the same as the system test module with 
+`_helper` added - for example `test_gcp_compute_operator_system_helper.py` for tests
+in `test_gcp_compute_operator_system.py`.
+
+You can run such helper with appropriate action. For example:
+
+```
+./tests/contrib/operators/test_gcp_compute_operator_system_helper.py  --action=create-instance
+```
+
+You can run each helper with `--help` to see all actions available.
+
+Do not forget to delete such resources with appropriate action when you are done testing.
+
+## Run whole example DAGs using full airflow in container
+
+Using Airflow Breeze you can also run full Airflow including wbserver and scheduler.
+
+-   Use `run_environment.sh --forward-port <PORT>` to run a container with the port 
+    forwarded to 8080 (where webserver listens for connections).
+-   It is easiest run tmux session so that you can have multiple terminals
+    within your container. Open multiple tmux terminals.
+-   Start the webserver in one of the tmux terminals: `airflow webserver`
+-   View the Airflow webapp at `http://localhost:<PORT>/`
+-   Start the scheduler in a separate tmux terminal: `airflow scheduler`
+-   It may take up to 5 minutes for the scheduler to notice the new DAG. Restart
+    the scheduler manually to speed this up.
+
+# Additional System test topics
 
 ## Running System Tests via Google Cloud Build (Continuous Integration)
 
-Once can setup Google Cloud Build in the way that all unit and system tests will be run
-automatically when you push the code to your GitHub repository. This is described
+You can setup Google Cloud Build in the way that all relevant unit and system tests are
+run automatically when you push the code to your GitHub repository. This is described
 in [README.setup.md](README.setup.md). 
 
 If you setup your GitHub project with master branch is protected checks enabled
@@ -85,68 +177,66 @@ for particular task logs).
 
 TODO: Add screenshots.
 
-## Executing custom setUp/tearDown manually for System Tests
+## System test cases with costly setup phase
 
-In case such custom setUp / tearDown, there is also a way to run such setUp/tearDown
-manually via helper script in the container environment. Typically such helper
-script has _helper.py extension - for example `./test_gcp_compute_operator_helper.py`.
-You can run such helper with appropriate action (for example:
-`./tests/contrib/operators/test_gcp_compute_operator_helper.py --action=create-instance`)
-in  order to perform such custom setUp/tearDown. You can run such helper with `--help`
-to see the actions available.
+There are some tests that have very long setup phase. Those
+tests are skipped by default within container environment. 
+You can run such tests automatically by setting appropriate environment variables. 
+For example `CloudSqlQueryExampleDagsSystemTest` test requires to setup 
+several cloud SQL databases and it can take up to 10-15 minutes to complete sometimes. 
+In order to run such tests manually you need to:
 
-This is particularly useful if you want to test each task within DAG separately.
+* Run appropriate helper's action to create resources (`before-tests`). For 
+example:
 
-## Long-setup System test cases skipped by default
+```
+./tests/contrib/operators/test_gcp_sql_operator_helper.py --action=before-tests`.
+```
+* set environment variable that enables the test. For example in case of
+`CloudSqlQueryExampleDagsSystemTest` you should set `GCP_ENABLE_CLOUDSQL_QUERY_TEST`
+to `True`.
+* Run the System Test (can be repeated).
+* Do not forget to remove the resources after you finished testing. For example:
 
-There are some tests that have very long and non-deterministic setup, those
-tests are skipped by default also within container environment and Cloud Build. You can
-run such tests automatically by setting appropriate environment variable. For example
-`CloudSqlQueryExampleDagsSystemTest` test requires to setup cloud SQL database and it can
-take up to 10-15 minutes to complete sometimes. In order to run such tests you need to:
+```
+./tests/contrib/operators/test_gcp_sql_operator_helper.py --action=after-tests`.
+```
 
-a) Manually run appropriate helper's action to create resources. For example
-`./tests/contrib/operators/test_gcp_sql_operator_helper.py --action=create`.
-b) set environment variable that disables the test. For example in case of
-`CloudSqlQueryExampleDagsSystemTest` you should set GCP_ENABLE_CLOUDSQL_QUERY_TEST
-to True. When test is skipped, the reason message will explain how to enable each system
-test.
-c) Run the test as usual (either via container environment or IDE). For example
-`./run_unit_tests.sh tests.contrib.operators.test_gcp_compute_operator_system:CloudSqlQueryExampleDagsSystemTest -s --logging-level=DEBUG`
+## Naming of the resources
 
-d) Do not forget to remove the resources after you finished testing. For example
-`./tests/contrib/operators/test_gcp_sql_operator_helper.py --action=delete`.
+When you run system test, you automatically get `AIRFLOW_BREEZE_TEST_SUITE` variable 
+generated for you - it combines your name retrieved from the `USER` environment and 
+random 5-digit number. 
 
-## Testing single tasks of DAGs in container environment
+This is pretty useful in order to make sure that your instance is exclusively used 
+by you - also it helps with combating problems that some names cannot be 
+reused for some time once deleted (this is the case for Cloud SQL instances).
+The random number is generated and stored in your `airflow-breeze` main folder
+in `.random` file (which is ignored by git). If you want to regenerate the random
+number simply delete the file and enter the environment or run System Tests.
 
-This is the fastest and most developer-friendly way of testing your DAG while you are
-developing it. In case special tearDown/setUp is needed you can run it manually before
-running the tasks as described in the previous chapter.
+## Using LocalExecutor for parallel runs
 
-You can run separate tasks for each dag via:
+Normally when you run the System Tests via IDE - they are executed using local 
+sqlite database and SequentialExecutor. This does not require any setup 
+for the database - the sqlite database will be created if needed and reset before each 
+test (setUp takes care about it). That's why you can run the tests without any 
+special setup.
 
-`airflow test <DAG_ID> <TASK_ID> <DATE>`
+However some SystemTests require parallelism which is not available with sqlite and
+SequentialExecutor. Those tests have `require_local_executor` constructor parameter
+set to True and they will fail without Postgres database and configuration to use
+Local Executor.
 
-The date has to be in the past and in YYYY-MM-DD form. For example:
+One such example is `BigTableExampleDagsSystemTest`. 
 
-`airflow test example_gcp_sql_query example_gcp_sql_task_postgres_tcp_id 2018-10-24`
+In order to run those tests you need to have `AIRFLOW_CONFIG` variable set to 
+`tests/contrib/operators/postgres_local_executor.cfg` and you need to have
+a local Postgres server running with airflow database created. 
 
-This runs the test without using/storing anything in the database of airflow and it
-produces output in the console rather than log files. You can see list of dags and
-tasks via `airflow list_dags` and `airflow list_tasks <DAG_ID>`.
+The Postgres airflow database can be created using those commands:
 
-## Run whole example DAGs using full airflow system
-
--   Use run_environment.sh to run a container with the port forwarded to 8080.
--   (optional), It is easiest run tmux session so that you can have multiple terminals
-    within your container.
--   Start the airflow db: `airflow initdb`
--   Start the webserver: `airflow webserver`
--   View the Airflow webapp at `http://localhost:8080/`
--   Start the scheduler in a separate terminal (make sure the separate terminal
-    is still in the container; tmux will help here): `airflow scheduler`
--   If not done automatically at entering the container - copy or symbolically link an
-    example dag into the DAGs folder:
-    `ln -s /workspace/airflow/example_dags/tutorial.py /airflow/dags`
--   It may take up to 5 minutes for the scheduler to notice the new DAG. Restart
-    the scheduler manually to speed this up.
+  ```
+  createuser root
+  createdb airflow/airflow.db
+  ```
