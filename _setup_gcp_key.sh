@@ -53,7 +53,7 @@ elif [[ -e "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" ]]; 
   echo
   echo "Removing old DAG links"
   echo
-  rm -rvf "${AIRFLOW_HOME}"/dags/*
+  rm -rvf ${AIRFLOW_HOME}/dags/*
   echo
   echo "Resetting the database"
   echo
