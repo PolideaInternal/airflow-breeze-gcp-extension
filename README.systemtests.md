@@ -84,13 +84,23 @@ and they might need additional setup as described in
 
 ## Running System Tests within the container environment
 
-You can run the System Tests via standard `nosetests` command. For example
+You can run the System Tests via standard `nosetests` command. 
+```
+nosetests tests.contrib.operators.test_gcs_acl_operator_system 
+```
+
+There are few flags that might be useful for debugging:
 
 ```
-nosetests tests.contrib.operators.test_gcs_acl_operator_system
+nosetests tests.contrib.operators.test_gcs_acl_operator_system -v --logging-level=DEBUG --debug=tests
 ```
 
-Note that unlike unit tests, the system tests should not be run 
+Where:
+  * -v - enables verbose logging of nose actions
+  * --logging-level=DEBUG - enables debug logs for test methods
+  * --debug=tests - enables debug logging for setUp/tearDown phase of tests in tests.* packages
+
+Note that - unlike unit tests - the system tests should not be run 
 using `./run_unit_test.bash`, because they cannot have `AIRFLOW__CORE__UNIT_TEST_MODE` 
 variable set to True and `./run_unit_test.bash` sets the variable.
 
