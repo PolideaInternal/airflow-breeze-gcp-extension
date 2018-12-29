@@ -161,3 +161,4 @@ COPY _setup_gcp_connection.py /airflow/_setup_gcp_connection.py
 COPY _decrypt_encrypted_variables.py /airflow/_decrypt_encrypted_variables.py
 COPY _bash_aliases /root/.bash_aliases
 COPY _inputrc /root/.inputrcalias
+COPY cloudbuild /root/cloudbuild
