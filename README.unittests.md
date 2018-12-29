@@ -24,6 +24,18 @@ After setting up the environment, you can use the usual "Run Test" option of the
 
 ![Run unittests](images/run_unittests.png)
 
+Note that some unit tests in core airflow (not GCP tests!) will not work this way 
+as they are not  true "Unit" tests - they require some external services. 
+Also some of the core tests use dags defined in `tests/dags` folder - 
+those tests should have `AIRFLOW__CORE__UNIT_TEST_MODE` set to 
+`True`. You can always set it up in your test configuration
+
+![Setting unit test mode](images/unit_test_mode.png)
+
+System tests (which are run as Python tests) cannot have the 
+`AIRFLOW__CORE__UNIT_TEST_MODE` variable set and they will fail if it is set.
+You can read more about system tests in [README.systemtests.md](README.systemtests.md)
+
 ## Unit Tests in Travis CI (Continuous Integration)
 
 In order to run the tests, ensure you have set up TravisCI on your fork of the Airflow
