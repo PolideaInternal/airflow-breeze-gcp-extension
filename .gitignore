@@ -16,8 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 .DS_Store
-/*/incubator-airflow
-/*/airflow-breeze-config
+/workspaces
 /*/.bash_history
 /*/.key
 /*/.project_id

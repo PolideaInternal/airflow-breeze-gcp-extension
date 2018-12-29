@@ -425,6 +425,7 @@ export AIRFLOW_BREEZE_WORKSPACE_FILE=${MY_DIR}/.workspace
 
 export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:=$(cat ${AIRFLOW_BREEZE_WORKSPACE_FILE} 2>/dev/null)}"
 export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:="default"}"
+export AIRFLOW_BREEZE_WORKSPACE_DIR="${MY_DIR}/workspaces/${AIRFLOW_BREEZE_WORKSPACE_NAME}"
 
 if [[ ${AIRFLOW_BREEZE_WORKSPACE_NAME} == */* ]]; then
     echo
@@ -439,17 +440,17 @@ echo ${AIRFLOW_BREEZE_WORKSPACE_NAME} > ${AIRFLOW_BREEZE_WORKSPACE_FILE}
 
 #################### Directories #######################################################
 
-export AIRFLOW_BREEZE_CONFIG_DIR="${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/airflow-breeze-config"
+export AIRFLOW_BREEZE_CONFIG_DIR="${AIRFLOW_BREEZE_WORKSPACE_DIR}/airflow-breeze-config"
 export AIRFLOW_BREEZE_KEYS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/keys"
-export AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/incubator-airflow
-export AIRFLOW_BREEZE_OUTPUT_DIR=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/output
+export AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR=${AIRFLOW_BREEZE_WORKSPACE_DIR}/incubator-airflow
+export AIRFLOW_BREEZE_OUTPUT_DIR=${AIRFLOW_BREEZE_WORKSPACE_DIR}/output
 
 ################## Files ###############################################################
-export AIRFLOW_BREEZE_BASH_HISTORY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history
-export AIRFLOW_BREEZE_PROJECT_ID_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.project_id
-export AIRFLOW_BREEZE_KEY_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.key
+export AIRFLOW_BREEZE_BASH_HISTORY_FILE=${AIRFLOW_BREEZE_WORKSPACE_DIR}/.bash_history
+export AIRFLOW_BREEZE_PROJECT_ID_FILE=${AIRFLOW_BREEZE_WORKSPACE_DIR}/.project_id
+export AIRFLOW_BREEZE_KEY_FILE=${AIRFLOW_BREEZE_WORKSPACE_DIR}/.key
 export AIRFLOW_BREEZE_KEY_NAME="${AIRFLOW_BREEZE_KEY_NAME:=$(cat ${AIRFLOW_BREEZE_KEY_FILE} 2>/dev/null)}"
-export AIRFLOW_BREEZE_PYTHON_VERSION_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.python_version
+export AIRFLOW_BREEZE_PYTHON_VERSION_FILE=${AIRFLOW_BREEZE_WORKSPACE_DIR}/.python_version
 export AIRFLOW_BREEZE_PYTHON_VERSION="${AIRFLOW_BREEZE_PYTHON_VERSION:=$(cat ${AIRFLOW_BREEZE_PYTHON_VERSION_FILE} 2>/dev/null)}"
 export AIRFLOW_BREEZE_PYTHON_VERSION="${AIRFLOW_BREEZE_PYTHON_VERSION:=3.6}"
 
@@ -557,12 +558,13 @@ if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
   echo
   echo "Automatically checking out airflow-breeze-config directory from your Google Cloud Repository:"
   echo
+  mkdir -pv "${AIRFLOW_BREEZE_CONFIG_DIR}"
   gcloud source repos --project=${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
     "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
      echo && echo "Bootstrapping airflow-breeze-config as it was not found in Google Cloud Repository" && echo && \
      python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
-       --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME} )
+       --workspace ${AIRFLOW_BREEZE_WORKSPACE_DIR} )
 
      CLOUDBUILD_FILES=$(cd "${AIRFLOW_BREEZE_CONFIG_DIR}"; find . -name cloudbuild.yaml)
      if [[ ${CLOUDBUILD_FILES} != "" ]]; then
@@ -588,7 +590,7 @@ if [[ ${RECREATE_GCP_PROJECT} == "true" ]]; then
     (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
         python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
-       --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}   \
+       --workspace ${AIRFLOW_BREEZE_WORKSPACE_DIR}   \
        --recreate-project )
     decrypt_all_files
     decrypt_all_variables
@@ -597,7 +599,7 @@ elif [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
     (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
         python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
-       --workspace ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}  )
+       --workspace ${AIRFLOW_BREEZE_WORKSPACE_DIR}  )
     decrypt_all_files
     decrypt_all_variables
 fi
@@ -640,10 +642,10 @@ if [[ ${LIST_KEYS} == "true" ]]; then
     exit
 fi
 ################## Check if .bash_history file exists #############################
-if [[ ! -f "${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history" ]]; then
+if [[ ! -f "${AIRFLOW_BREEZE_WORKSPACE_DIR}/.bash_history" ]]; then
   echo
   echo "Creating empty .bash_history"
-  touch ${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.bash_history
+  touch ${AIRFLOW_BREEZE_WORKSPACE_DIR}/.bash_history
   echo
 fi
 

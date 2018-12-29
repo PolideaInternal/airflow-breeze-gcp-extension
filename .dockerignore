@@ -15,8 +15,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-/*/incubator-airflow
-/*/airflow-breeze-config
 /*/.bash_history
 /*/.project_id
 /*/.key
@@ -24,3 +22,4 @@
 /.workspace
 *.iml
 .idea
+/workspaces

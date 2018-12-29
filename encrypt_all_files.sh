@@ -31,11 +31,10 @@ fi
 export AIRFLOW_BREEZE_WORKSPACE_NAME="${AIRFLOW_BREEZE_WORKSPACE_NAME:=$(cat ${AIRFLOW_BREEZE_WORKSPACE_FILE} 2>/dev/null)}"
 
 #################### Directories #######################################################
-
-export AIRFLOW_BREEZE_CONFIG_DIR="${AIRFLOW_BREEZE_CONFIG_DIR:=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/airflow-breeze-config}"
+export AIRFLOW_BREEZE_CONFIG_DIR="${AIRFLOW_BREEZE_CONFIG_DIR:=${MY_DIR}/workspaces/${AIRFLOW_BREEZE_WORKSPACE_NAME}/airflow-breeze-config}"
 export AIRFLOW_BREEZE_KEYS_DIR="${AIRFLOW_BREEZE_KEYS_DIR:=${AIRFLOW_BREEZE_CONFIG_DIR}/keys}"
 export AIRFLOW_BREEZE_NOTIFICATIONS_DIR="${AIRFLOW_BREEZE_NOTIFICATIONS_DIR:=${AIRFLOW_BREEZE_CONFIG_DIR}/notifications}"
-export AIRFLOW_BREEZE_PROJECT_ID_FILE=${MY_DIR}/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.project_id
+export AIRFLOW_BREEZE_PROJECT_ID_FILE=${MY_DIR}/workspaces/${AIRFLOW_BREEZE_WORKSPACE_NAME}/.project_id
 export AIRFLOW_BREEZE_PROJECT_ID=${AIRFLOW_BREEZE_PROJECT_ID:-}
 
 if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID}" ]]; then
@@ -49,9 +48,9 @@ if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID}" ]]; then
   fi
 fi
 
-
 pushd ${AIRFLOW_BREEZE_KEYS_DIR}
 FILES=$(ls *.json *.pem 2>/dev/null || true)
+echo "Encrypting all files '${FILES}'"
 for FILE in ${FILES}
 do
   gcloud kms encrypt --plaintext-file ${FILE} --ciphertext-file ${FILE}.enc \

@@ -49,7 +49,7 @@ def get_current_workspace_info():
             raise Exception("Please select workspace by running run_environment.sh first!"
                             " The file {} is missing.".format(workspace_file))
         raise e
-    workspace_dir = os.path.join(current_file_dir, workspace)
+    workspace_dir = os.path.join(current_file_dir, "workspaces", workspace)
     incubator_airflow_config_dir = os.path.join(workspace_dir, 'airflow-breeze-config')
     incubator_airflow_keys_dir = os.path.join(incubator_airflow_config_dir, 'keys')
     project_file = os.path.join(workspace_dir, '.project_id')
