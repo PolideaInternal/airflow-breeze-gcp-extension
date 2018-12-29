@@ -36,7 +36,7 @@ export SLUGIFY_USES_TEXT_UNIDECODE=yes
 
 AIRFLOW_BREEZE_CONFIG_DIR="${HOME}/airflow-breeze-config"
 if [[ -f ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env ]]; then
-  echo "Sourcing variables from ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.yaml"
+  echo "Sourcing variables from ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env"
   set -x
   source ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env
   set +x

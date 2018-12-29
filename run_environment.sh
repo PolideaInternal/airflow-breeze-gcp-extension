@@ -675,7 +675,11 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     ################## Check if key exists #############################################
     if [[ ! -f "${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}" ]]; then
         echo
-        echo "Missing key file ${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}"
+        if [[ ${AIRFLOW_BREEZE_KEY_NAME} == "" ]]; then
+            echo "Service account key not specified"
+        else
+            echo "Missing key file ${AIRFLOW_BREEZE_KEYS_DIR}/${AIRFLOW_BREEZE_KEY_NAME}"
+        fi
         echo
         echo "Authentication to Google Cloud Platform will not work."
         echo "You need to select the key once with --key-name <KEY_NAME>"

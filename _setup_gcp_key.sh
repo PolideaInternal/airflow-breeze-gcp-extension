@@ -29,17 +29,25 @@ export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
 export GCP_SERVICE_ACCOUNT_KEY_NAME=${1}
 export GCP_PROJECT_ID=${GCP_PROJECT_ID:="no-project-set-please-set-it"}
 
-echo
-echo "Activating service account with ${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
-echo
-
 if [[ ${GCP_SERVICE_ACCOUNT_KEY_NAME} == "" ]]; then
   echo
   echo "WARNING: No key specified"
   echo
   echo "The key should be one of [$(cd ${GCP_SERVICE_ACCOUNT_KEY_DIR} && ls *.json | tr '\n' ',')]."
   echo
+  if [[ ${DATABASE_INITIALIZED:=""} == "" ]]; then
+      echo
+      echo "Resetting the database"
+      echo
+      airflow resetdb -y
+      echo
+      source ${MY_DIR}/_create_links.sh
+      echo
+  fi
 elif [[ -e "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" ]]; then
+  echo
+  echo "Activating service account with ${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}"
+  echo
   # Allow application-default login
   echo "export GOOGLE_APPLICATION_CREDENTIALS=${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" >> ${HOME}/.bashrc
   gcloud auth activate-service-account \
@@ -62,16 +70,27 @@ elif [[ -e "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" ]]; 
   python ${MY_DIR}/_setup_gcp_connection.py "${GCP_PROJECT_ID}"
   echo
   source ${MY_DIR}/_create_links.sh
-  echo
-  echo "Note you can always change the key via 'set_gcp_key KEY_NAME'. "
-  echo
-  echo "Running 'set_gcp_key' will show you available keys."
-  echo
 else
   echo
   echo "WARNING: No key ${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}."
   echo
   echo "The key should be one of [$(cd ${GCP_SERVICE_ACCOUNT_KEY_DIR} && ls *.json | tr '\n' ',')]."
   echo
+  if [[ ${DATABASE_INITIALIZED:=""} == "" ]]; then
+      echo
+      echo "Resetting the database"
+      echo
+      airflow resetdb -y
+      echo
+      source ${MY_DIR}/_create_links.sh
+      echo
+  fi
 fi
 
+export DATABASE_INITIALIZED=True
+
+echo
+echo "You can change the key via 'set_gcp_key KEY_NAME'. "
+echo
+echo "Running 'set_gcp_key' will show you available keys."
+echo
