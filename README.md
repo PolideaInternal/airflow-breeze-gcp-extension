@@ -194,7 +194,7 @@ If you are done using container, you might want to delete the image it generated
 downloaded (it takes up about 2 gigabytes!) Ensure you do not have any open workspaces,
 then use `./run_environment.sh --cleanup-image` to delete the image.
 
-Note that the disk space will not be actually reclaimed until you run
+Note that after cleanup the disk space is not reclaimed. It will be reclaimed when you run
 `docker system prune`.
 
 You may also delete the workspace folders after you are done with them.

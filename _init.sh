@@ -84,6 +84,9 @@ export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
 
 export AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
 
+# Enable local executor
+export AIRFLOW_CONFIG=${AIRFLOW_SOURCES}/tests/contrib/operators/postgres_local_executor.cfg
+
 # Source all environment variables from key dir
 for ENV_FILE in ${GCP_SERVICE_ACCOUNT_KEY_DIR}/*.env
 do

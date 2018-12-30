@@ -214,20 +214,62 @@ to `True`.
 
 ## Naming of the resources
 
-When you run system test, you automatically get `AIRFLOW_BREEZE_TEST_SUITE` variable 
-generated for you - it combines your name retrieved from the `USER` environment and 
-random 5-digit number. 
+You have to name your resources appropriately when you create example dags and 
+update `variables.env`. Your resources (instance names, clusters etd.) should contain
+`AIRFLOW_BREEZE_UNIQUE_SUFFIX` variable in order to maintain isolation between
+parallel runs of the System Tests. The `AIRFLOW_BREEZE_UNIQUE_SUFFIX` variable is
+build from two variables `AIRFLOW_BREEZE_TEST_SUITE` and `AIRFLOW_BREEZE_SHORT_SHA`
+separated with `-`. 
+
+Note that even single build in Cloud Build consists of parallel runs of test suites
+- one for each python version supported, so if you fail isolating those, the 
+parallel runs will interfere with each other. You can see examples of 
+how the resources shoudl be named see examples in 
+ [TEMPLATE-variables.env](bootstrap/config/TEMPLATE-variables.env).
+ 
+Note that in some cases names cannot contain `-` character - in this case you can
+replace the `-` in generated names with another character. You can see how it is done
+in the Google Cloud Functions example DAG:
+
+```python
+import os
+GCF_SHORT_FUNCTION_NAME = os.environ.get('GCF_SHORT_FUNCTION_NAME', 'hello').\
+    replace("-", "_")  # make sure there are no dashes in function name (!)
+```
+
+### Unique Suffix in Cloud Build environment
+
+When the System Tests are run in Cloud Build environment, the
+`AIRFLOW_BREEZE_TEST_SUITE` is set to `python<PYTHON_VERSION>` and 
+the `AIRFLOW_BREEZE_SHORT_SHA` is set to first 7 digits of commit SHA. This 
+is very useful to isolate parallel tests run for all python versions and to isolate
+several parallel builds from different branches.
+
+Example `AIRFLOW_BREEZE_UNIQUE_SUFFIX` in Cloud Build  : `python36-d3sedw3`
+
+### Unique Suffix in local docker environment or when using IDE
+
+When you enter your lockla docker environment, you automatically get 
+`AIRFLOW_BREEZE_TEST_SUITE` and `AIRFLOW_BREEZE_SHORT_SHA` generated for you.
+
+The `AIRFLOW_BREEZE_TEST_SUITE` is built from first 6 ascii characters of user name
+and python version with stripped '.'.
+
+The `AIRFLOW_BREEZE_SHORT_SHA` is generated randomly 7 alphanum lowercase characters,
+mimicking first 7 digits of commit SHA.
+
+Example `AIRFLOW_BREEZE_UNIQUE_SUFFIX` in local environment  : `potiuk36-7sdefra`
 
 This is pretty useful in order to make sure that your instance is exclusively used 
-by you - also it helps with combating problems that some names cannot be 
-reused for some time once deleted (this is the case for Cloud SQL instances).
-The random number is generated and stored in your `airflow-breeze` main folder
+by you. It also helps with mitigating the problem that some names cannot be 
+reused for some time once deleted. This is the case for Cloud SQL instances for
+example. The random number is generated and stored in your `airflow-breeze` main folder
 in `.random` file (which is ignored by git). If you want to regenerate the random
-number simply delete the file and enter the environment or run System Tests.
+number - simply delete the file and enter the environment.
 
 ## Using LocalExecutor for parallel runs
 
-Normally when you run the System Tests via IDE - they are executed using local 
+Usually hen you run the System Tests via IDE - they are executed using local 
 sqlite database and SequentialExecutor. This does not require any setup 
 for the database - the sqlite database will be created if needed and reset before each 
 test (setUp takes care about it). That's why you can run the tests without any 
@@ -250,3 +292,6 @@ The Postgres airflow database can be created using those commands:
   createuser root
   createdb airflow/airflow.db
   ```
+
+When using container environment, by default all tests are run using LocalExecutor and 
+Postrgres database is used as metadata database.

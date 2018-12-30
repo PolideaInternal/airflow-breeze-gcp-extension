@@ -58,13 +58,13 @@ project.
 ## Setting up the workspace
 
 When you run the environment for the first time it will attempt to automatically
-create a workspace directory for you (the default name of workspace is "default").
-This workspace is sub-directory of the main `airflow-breeze` project. You can 
+create a workspace directory for you in the "workspaces" folder.
+The default name of workspace is "default" if you don't specify any. You can
 have several different workspaces and switch between them in case you work on several
 different GCP projects or several different branches.
 
 Note! We always refer to workspace with it's name which is relative to main 
-airflow-breeze directory. Do not refer to workspace fia full path.
+`airflow-breeze/workspaces` directory. Do not refer to workspace usingfull path.
 
 ## Checking out the repositories
 
@@ -81,9 +81,10 @@ Reminder - use relative name for the workspace not full path.
 
 Running the environment for the first time performs the following actions:
 
-* Checkout the incubator-airflow project from your fork and place it in the workspace
-  specified. (if you omit workspace, the "default" workspace is used). The project
-  is checked out in <WORKSPACE>/incubator-airflow directory
+* Checkout the incubator-airflow project from your fork and place it in the 
+  workspace specified (in "workspaces/<WORKSPACE_NAME>" subfolders of the airflow-breeze
+  project. If you omit workspace, the "default" workspace is used. The project
+  is checked out in `workspaces/<WORKSPACE>/incubator-airflow` directory
 
 * In case project id is already configured for Airflow Breeze by your team, it checks-out
   project's configuration to <WORKSPACE>/airflow-breeze-config directory. More info about
@@ -120,14 +121,16 @@ The bootstrap process builds docker image for `airflow-breeze`.
 This image is used to run container in which Airflow environment is setup. 
 If the image has not yet been created, by default it is build it locally.
 
-Remember that when the `airflow-breeze` sources change, you need to rebuild the image
-by providing `--rebuild-image` flag when you run `run-environment.sh`.
+Tje `airflow-breeze` image is rebuilt every time sources change and you enter the 
+environment. You might skip this step by providing
+`--do-not-rebuild-image` flag when you run `run-environment.sh`.
 
-Instead of building the image you can choose to download the image from your project's
-registry via providing `--download-image` flag. However this is only possible if you 
-set-up Cloud Build as described in [Google Cloud Build Setup](#Google-Cloud-Build-setup).
+Instead of building the image locally you can choose to download the image from your 
+project's registry via providing `--download-image` flag. However this is only possible
+if your team set-up Cloud Build as described in [Google Cloud Build Setup](#Google-Cloud-Build-setup).
 In such cae the image is automatically built and stored in your project's repository
-every time `airflow-breeze` is pushed to your Github fork.
+every time `airflow-breeze` is pushed to your Github fork. The `--download-image` flag
+automatically disables local rebuilding.
 
 # Google Cloud Build setup
 
@@ -222,6 +225,19 @@ You should also setup Travis CI for running all unit tests automatically as desc
 [CONTRIBUTING.md](https://github.com/apache/incubator-airflow/blob/master/CONTRIBUTING.md#testing-on-travis-ci)
 
 # Appendixes
+
+## Reinstalling latest airflow dependencies
+
+When you already have a local `airflow-breeze` image built, the dependencies of
+incubator-airflow are installed at the time of the installation. Even if they
+change later and new dependencies will be added, this does not cause the dependencies
+to be re-installed - they are only added incrementally when you enter the container
+environment. The more dependencies are added, the longer it will take to enter the
+environment. Therefore from time to time you should force reinstalling the dependencies.
+This can be done by increasing value of REBUILD_AIRFLOW_BREEZE_VERSION in 
+the [Dockerfile](Dockerfile). Once you commit it and other team member synchronize it,
+next time when they enter the environment, all python environments will rebuild with
+latest dependencies.
 
 ## Configuration variables
 

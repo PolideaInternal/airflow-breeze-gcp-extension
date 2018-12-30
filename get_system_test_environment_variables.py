@@ -5,6 +5,7 @@ import random
 import string
 
 import subprocess
+import sys
 
 ENCRYPTED_SUFFIX = '_ENCRYPTED'
 #
@@ -37,14 +38,16 @@ def process_environment_variables():
     last_random_file = os.path.join(current_file_dir, ".random")
     if os.path.isfile(last_random_file):
         with open(last_random_file, "r") as f:
-            last_random_num = f.readline()
+            last_random = f.readline().strip()
     else:
-        last_random_num = ''.join(random.choice(string.digits) for _ in range(5))
-        with open(last_random_file,"w") as f:
-            f.write(last_random_num)
-    lowercase_user = os.environ.get('USER').lower()[:8].encode('ascii',
-                                                               errors='ignore').decode(
-        'ascii') + last_random_num
+        last_random = ''.join(
+            random.choice(string.digits + string.ascii_lowercase) for _ in range(7))
+        with open(last_random_file, "w") as f:
+            f.write(last_random)
+    lowercase_user_and_python_version = os.environ.get('USER').lower().\
+        encode('ascii', errors='ignore').decode('ascii')[:7] + \
+        "".join(sys.version.split('.')[0:2])
+
     workspace_file = os.path.join(current_file_dir, ".workspace")
     try:
         with open(workspace_file) as f:
@@ -73,7 +76,8 @@ def process_environment_variables():
         print("The {} is not keys dir.".format(incubator_airflow_keys_dir))
         exit(1)
     os.environ['AIRFLOW_BREEZE_CONFIG_DIR'] = incubator_airflow_config_dir
-    os.environ['AIRFLOW_BREEZE_TEST_SUITE'] = lowercase_user
+    os.environ['AIRFLOW_BREEZE_TEST_SUITE'] = lowercase_user_and_python_version
+    os.environ['AIRFLOW_BREEZE_SHORT_SHA'] = last_random
     variable_env_file = os.path.join(incubator_airflow_config_dir, 'variables.env')
     with open(variable_env_file) as f:
         lines = f.readlines()

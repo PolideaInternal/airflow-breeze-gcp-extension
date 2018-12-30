@@ -36,8 +36,8 @@ RUN_DOCKER=true
 
 #################### Build image settings
 
-# If true, the docker image is rebuilt locally. Specified using the -r flag.
-REBUILD=false
+# If true, the docker image is rebuilt locally. Can be disabled with -r
+REBUILD=true
 # Whether to upload image to the GCR Repository
 UPLOAD_IMAGE=false
 # Whether to download image to the GCR Repository
@@ -72,18 +72,6 @@ RECONFIGURE_GCP_PROJECT=false
 
 #################### Recreate the GCP project
 RECREATE_GCP_PROJECT=false
-
-USER=${USER:=""}
-
-RANDOM_FILE=${MY_DIR}/.random
-#################### Test suite is calculated from user name
-if [[ ! -f ${RANDOM_FILE} ]]; then
-    printf "%05d" ${RANDOM} > ${RANDOM_FILE}
-fi
-
-RANDOM_NUM=$(cat ${RANDOM_FILE})
-
-AIRFLOW_BREEZE_TEST_SUITE=$(echo ${USER:0:8}${RANDOM} | iconv -f utf-8 -t ascii//ignore)
 
 #################### Helper functions
 
@@ -159,6 +147,7 @@ docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
  --env-file=${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env \
  -e PYTHON_VERSION=${AIRFLOW_BREEZE_PYTHON_VERSION} \
  -e AIRFLOW_BREEZE_TEST_SUITE=${AIRFLOW_BREEZE_TEST_SUITE} \
+ -e AIRFLOW_BREEZE_SHORT_SHA=${AIRFLOW_BREEZE_SHORT_SHA} \
  -e AIRFLOW_BREEZE_CONFIG_DIR=/root/airflow-breeze-config \
  -e GCP_SERVICE_ACCOUNT_KEY_NAME=${AIRFLOW_BREEZE_KEY_NAME} \
  -v ${AIRFLOW_BREEZE_BASH_HISTORY_FILE}:/root/.bash_history \
@@ -269,8 +258,8 @@ Initializing your local virtualenv:
 
 Managing the docker image of airflow-breeze:
 
--r, --rebuild-image
-        Rebuild the incubator-airflow docker image locally
+-r, --do-not-rebuild-image
+        Don't rebuild the incubator-airflow docker image locally
 
 -u, --upload-image
         After rebuilding, also upload the image to GCR repository
@@ -339,7 +328,7 @@ fi
 
 PARAMS=$(getopt \
     -o hp:w:k:KP:f:rudcgGiR:B:t:x: \
-    -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,rebuild-image,\
+    -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,do-not-rebuild-image,\
 upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,\
 initialize-local-virtualenv,repository:,branch:,test-target:,execute: \
     --name "$CMDNAME" -- "$@")
@@ -370,8 +359,8 @@ do
       AIRFLOW_BREEZE_PYTHON_VERSION="${2}"; shift 2 ;;
     -f|--forward-port)
       DOCKER_PORT_ARG="-p 127.0.0.1:${2}:8080"; shift 2 ;;
-    -r|--rebuild-image)
-      REBUILD=true; shift ;;
+    -r|--do-not-rebuild-image)
+      REBUILD=false; shift ;;
     -u|--upload-image)
       UPLOAD_IMAGE=true
       if [[ ! ${DOWNLOAD_IMAGE} != "false" || ${CLEANUP_IMAGE} != "false" ]]; then
@@ -381,6 +370,7 @@ do
       shift ;;
     -d|--download-image)
       DOWNLOAD_IMAGE=true
+      REBUILD=false
       if [[ ${UPLOAD_IMAGE} != "false" || ${CLEANUP_IMAGE} != "false" ]]; then
          echo "Cannot specify two of 'upload', 'download', 'cleanup' at the same time"
          exit 1
@@ -392,6 +382,7 @@ do
          exit 1
       fi
       CLEANUP_IMAGE=true
+      REBUILD=false
       RUN_DOCKER=false
       shift ;;
     -g|--reconfigure-gcp-project)
@@ -418,7 +409,6 @@ do
       ;;
   esac
 done
-
 
 #################### Workspace name #######################################################
 export AIRFLOW_BREEZE_WORKSPACE_FILE=${MY_DIR}/.workspace
@@ -478,6 +468,24 @@ if [[ ${ALLOWED_PYTHON_VERSIONS} != *" ${AIRFLOW_BREEZE_PYTHON_VERSION} "* ]]; t
     echo
     exit 1
 fi
+
+#################### Test suite generation ##########################################
+# First 6 characters of the ASCII-only user name + python version withstripped .
+
+USER=${USER:=""}
+ASCII_USER=$(echo ${USER} | env LANG=C sed 's/[^a-zA-Z0-9]//g')
+NUMERIC_PYTHON_VERSION=$(echo ${AIRFLOW_BREEZE_PYTHON_VERSION} | sed 's/\.//')
+AIRFLOW_BREEZE_TEST_SUITE=${ASCII_USER:0:6}${NUMERIC_PYTHON_VERSION}
+
+#################### Short SHA ##########################################
+# 7 random alphanum characters stored in .random file which you can delete to regenerate
+
+RANDOM_FILE=${MY_DIR}/.random
+
+if [[ ! -f ${RANDOM_FILE} ]]; then
+    cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-z0-9' | fold -w 7 | head -n 1 > ${RANDOM_FILE}
+fi
+AIRFLOW_BREEZE_SHORT_SHA=$(cat ${RANDOM_FILE})
 
 #################### Setup image name ##############################################
 IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze:${AIRFLOW_REPOSITORY_BRANCH}"
@@ -641,37 +649,38 @@ if [[ ${LIST_KEYS} == "true" ]]; then
     echo "<KEY_NAME> can be one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
     exit
 fi
-################## Check if .bash_history file exists #############################
-if [[ ! -f "${AIRFLOW_BREEZE_WORKSPACE_DIR}/.bash_history" ]]; then
-  echo
-  echo "Creating empty .bash_history"
-  touch ${AIRFLOW_BREEZE_WORKSPACE_DIR}/.bash_history
-  echo
-fi
-
-################## Download image #############################
-if [[ "${DOWNLOAD_IMAGE}" == "true" ]]; then
-  download
-fi
-
-################## Build image locally #############################
-if [[ "${REBUILD}" == "true" ]]; then
-  echo
-  echo "Rebuilding local image as requested"
-  echo
-  build_local
-elif [[ -z "$(docker images -q "${IMAGE_NAME}" 2> /dev/null)" ]]; then
-  if [[ $? != "0" ]]; then
-      echo
-      echo "The local image does not exist. Building it. It might take up to 30 minutes."
-      echo
-      echo "Press enter to continue"
-      read
-      build_local
-  fi
-fi
 
 if [[ ${RUN_DOCKER} == "true" ]]; then
+    ################## Check if .bash_history file exists #############################
+    if [[ ! -f "${AIRFLOW_BREEZE_WORKSPACE_DIR}/.bash_history" ]]; then
+      echo
+      echo "Creating empty .bash_history"
+      touch ${AIRFLOW_BREEZE_WORKSPACE_DIR}/.bash_history
+      echo
+    fi
+
+    ################## Download image #############################
+    if [[ "${DOWNLOAD_IMAGE}" == "true" ]]; then
+      download
+    fi
+
+    ################## Build image locally #############################
+    if [[ "${REBUILD}" == "true" ]]; then
+      echo
+      echo "Rebuilding local image as requested"
+      echo
+      build_local
+    elif [[ -z "$(docker images -q "${IMAGE_NAME}" 2> /dev/null)" ]]; then
+      if [[ $? != "0" ]]; then
+          echo
+          echo "The local image does not exist. Building it. It might take up to 30 minutes."
+          echo
+          echo "Press enter to continue"
+          read
+          build_local
+      fi
+    fi
+
     decrypt_all_files
     decrypt_all_variables
     ################## Check if key exists #############################################
@@ -715,6 +724,7 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo " AIRFLOW_BREEZE_CONFIG_DIR     = ${AIRFLOW_BREEZE_CONFIG_DIR}"
     echo " AIRFLOW_BREEZE_OUTPUT_DIR     = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
     echo " AIRFLOW_BREEZE_TEST_SUITE     = ${AIRFLOW_BREEZE_TEST_SUITE}"
+    echo " AIRFLOW_BREEZE_SHORT_SHA      = ${AIRFLOW_BREEZE_SHORT_SHA}"
     echo
     echo " AIRFLOW_BREEZE_KEY_NAME       = ${AIRFLOW_BREEZE_KEY_NAME}"
     echo
