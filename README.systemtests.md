@@ -68,19 +68,28 @@ described in [README.md](README.md#Adding-new-service-accounts)
 
 ## Running System Tests via IDE (IntelliJ)
 
-You run the system tests via IDE in the same way as in case of the normal unit tests
-(see above). The environment variables from last used workspace will be automatically
-sourced and used by the test. Similarly to Unit Tests you need to have virtualenv
-setup and configured and then you can run the tests as usual:
+You run the system tests via IDE in the same way as in case of the 
+[Unit tests](README.unittests.md) - you need to configure virtual environments
+in the same way as described there.
+
+You need to enter the container environment at least once before
+you start running the system tests via IDE. This is because the environment 
+variables from last used workspace will be automatically
+sourced and used by the System Tests from the IDE. This is done using
+[Get system environment variables script](get_system_test_environment_variables.py)
+
+Running system tests from the IDE looks exactly the same as running unit tests:
 
 ![Run unittests](images/run_unittests.png)
 
 If you have no `AIRFLOW_HOME` variable set the logs, airflow sqlite databases
-and other artifacts are created in your ${HOME}/airflow/ directory.
+and other artifacts are created in your ${HOME}/airflow/ directory. Otherwise
+they are stored in `AIRFLOW_HOME` directory. 
 
-Note that there are some tests that might require long time setup of costly resources
+There are some tests that might require long time setup of costly resources
 and they might need additional setup as described in 
-[System test cases with costly setup phase](#System-test-cases-with-costly-setup-phase)
+[System test cases with costly setup phase](#System-test-cases-with-costly-setup-phase).
+Those tests will warn you if the setup is not done before they are run.
 
 ## Running System Tests within the container environment
 
@@ -100,24 +109,25 @@ Where:
   * --logging-level=DEBUG - enables debug logs for test methods
   * --debug=tests - enables debug logging for setUp/tearDown phase of tests in tests.* packages
 
-Note that - unlike unit tests - the system tests should not be run 
+Unlike unit tests - the system tests should not be run 
 using `./run_unit_test.bash`, because they cannot have `AIRFLOW__CORE__UNIT_TEST_MODE` 
 variable set to True and `./run_unit_test.bash` sets the variable.
 
 The logs, airflow sqlite databases and other artifacts are created in /airflow/ directory.
 
-Note that there are some tests that might require long time setup of costly resources
+Again - there are some tests that might require long time setup of costly resources
 and they might need additional setup as described in 
 [System test cases with costly setup phase](#System-test-cases-with-costly-setup-phase)
-
+Those tests will warn you if the setup is not done before they are run.
 
 ## Testing single tasks of DAGs in container environment
 
-This is the fastest and most developer-friendly way of testing your operator while you 
-are developing it. In case special tearDown/setUp is needed - you can run the 
-setUp/tearDown manually using helpers as described in the following chapter.
+This is the fastest and most developer-friendly way of iterating on your operator
+while you are developing it. 
+Some of the system tests require special setUp - you can run the 
+setUp manually using helpers as described in the following chapter.
 
-You can run separate tasks for each dag via:
+After the setup is done, you can run separate tasks for each dag via:
 
 ```
 airflow test <DAG_ID> <TASK_ID> <DATE>
@@ -130,19 +140,20 @@ airflow test example_gcp_sql_query example_gcp_sql_task_postgres_tcp_id 2018-10-
 ```
 
 This runs the test without using/storing anything in the database of airflow and it
-produces output in the console rather than log files. You can see list of dags and
+produces output in the console rather than in the log files. You can see list of DAGs and
 tasks via `airflow list_dags` and `airflow list_tasks <DAG_ID>`.
 
 ## Executing custom setUp/tearDown manually
 
 In order to run the individual tasks in container environment, custom setUp / tearDown 
-might need to be run before - for example to create GCP resources necessary 
-to run the test. There is a way to run such setUp/tearDown manually via helper scripts. 
-Typically such  helper script is named the same as the system test module with 
-`_helper` added - for example `test_gcp_compute_operator_system_helper.py` for tests
-in `test_gcp_compute_operator_system.py`.
+might need to be run before tests. For example you must create GCP resources necessary 
+to run the instance tests. There is a way to run such setUp/tearDown manually via 
+helper scripts. Typically such  helper script is named the same as the system test 
+module with  `_helper` added. 
+For example `test_gcp_compute_operator_system_helper.py` for tests in 
+`test_gcp_compute_operator_system.py`.
 
-You can run such helper with appropriate action. For example:
+You should run such helper with appropriate action. For example:
 
 ```
 ./tests/contrib/operators/test_gcp_compute_operator_system_helper.py  --action=create-instance
@@ -151,6 +162,7 @@ You can run such helper with appropriate action. For example:
 You can run each helper with `--help` to see all actions available.
 
 Do not forget to delete such resources with appropriate action when you are done testing.
+Each helper has appropriate actions to delete those resources.
 
 ## Run whole example DAGs using full airflow in container
 
@@ -269,7 +281,7 @@ number - simply delete the file and enter the environment.
 
 ## Using LocalExecutor for parallel runs
 
-Usually hen you run the System Tests via IDE - they are executed using local 
+Usually when you run the System Tests via IDE - they are executed using local 
 sqlite database and SequentialExecutor. This does not require any setup 
 for the database - the sqlite database will be created if needed and reset before each 
 test (setUp takes care about it). That's why you can run the tests without any 

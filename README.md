@@ -18,6 +18,9 @@ It allows you to have multiple contribution workspaces simultaneously, storing
 them in subdirectories of its base directory and you can work on several parallel
 project ids in case you have test/staging/development project ids that you use.
 
+The workspaces are stored in `workspace` subdirectory of your project. It will
+be automatically created when you first time enter the container environment.
+
 It also allows you to share common configuration that you use in your project with
 your team members - via a shared airflow-breeze-config repository in Google Cloud
 Repositories.
@@ -55,7 +58,10 @@ and configuration is described in [README.setup.md](README.setup.md)
 
 # Entering the container environment
 
-To run the container, use `./run_environment.sh.`
+To run the container, use `./run_environment.sh.`. You need to do it at least
+once to have everything setup for you IDE integration and in order to be able
+to run [Unit tests](README.unittests.md) or [System tests](README.systemtests.md)
+using your IDE.
 
 The first time you enter the environment you will have to specify project,
 workspace and GCP service account key to use. Optionally you can specify

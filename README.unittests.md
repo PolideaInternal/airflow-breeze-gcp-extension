@@ -13,14 +13,34 @@ run tests.
 `./run_unit_tests.sh tests.contrib.operators.test_dataproc_operator -s
 --logging-level=DEBUG`
 
-## Running Unit tests within the IDE (IntelliJ)
+## Configuring your IDE (IntelliJ)
 
-Running the tests from IDE requires to have a local virtualenv setup. You can do it
-using `./run_environment.sh --initialize-local-virtualenv`. Then in your project's
-configuration you should select the virtualenv you initialized as the project's default
-virtualenv.
+In order to use your IDE you need to have virtual environments setup. Ideally 
+they should be setup for all python versions that Airflow supports (2.7, 3.5, 3.6).
+You can create the virtualenv using 
+[virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/) - that will allow
+you to easily switch between virtualenvs using `workon` command and mange 
+your virtual environments more easily. Typically creating the environment can be done by
 
-After setting up the environment, you can use the usual "Run Test" option of the IDE.
+```
+mkvirtualenv <ENV_NAME> --python=python<VERSION>
+```
+
+After the virtualenv is created, you must initialize it. Simply enter the environment 
+(using `workon`) and once you are in it run:
+```
+./run_environment.sh --initialize-local-virtualenv
+````
+
+Once initialization is done, you should select the virtualenv you initialized as the 
+project's default virtualenv in your IDE.
+
+After setting it up - you can use the usual "Run Test" option of the IDE and have
+all the autocomplete and documentation support from IDE as well as you can 
+debug and click-through the sources of Airflow - which is very helpful during
+development.
+
+Running unit tests from IDE is as simple as:
 
 ![Run unittests](images/run_unittests.png)
 
@@ -36,7 +56,7 @@ System tests (which are run as Python tests) cannot have the
 `AIRFLOW__CORE__UNIT_TEST_MODE` variable set and they will fail if it is set.
 You can read more about system tests in [README.systemtests.md](README.systemtests.md)
 
-## Unit Tests in Travis CI (Continuous Integration)
+## Configuring Unit Tests in Travis CI (Continuous Integration)
 
 In order to run the tests, ensure you have set up TravisCI on your fork of the Airflow
 GitHub repo. This is described in
