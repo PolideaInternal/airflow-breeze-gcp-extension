@@ -3,7 +3,7 @@
 System tests are used to tests Airflow operators with an existing Google Cloud Platform
 services. Those are e-2-e tests of the operators.
 
-# Example DAGs
+# Example DAG
 
 The operators you develop should have example DAGs defined that describe the usage
 of the operators, and are used to provide snippets of code for the 
@@ -30,10 +30,15 @@ Most of the DAGs you work on are in `/workspace/airflow/example_dags` or
 # System test classes
 
 It is easiest to run the System Tests from your IDE via specially defined System Test
-classes using the standard python Unit Tests. By convention they are placed in 
+classes (inheriting from `DagGcpSystemTestCase` class) using the standard python 
+Unit Tests framework. By convention they are placed in 
 the `*_system.py` modules of corresponding tests files (in `test/contrib/` directory).
 Example of such test is `GcpComputeExampleDagsSystemTest`
 in `test/contrib/test_gcp_compute_operator_system.py`.
+
+If you want to use simply GCP authentication support for System Tests without
+actually running an example DAG, you can also inherit from 
+`BaseGcpSystemTestCase` - this way you can run any tests that communicate with GCP.
 
 Such tests in some cases can have custom setUp/tearDown routines to set-up the Google
 Cloud Platform environment - to setup resources that would be costly to keep running
