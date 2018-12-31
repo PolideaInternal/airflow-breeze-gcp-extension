@@ -105,7 +105,7 @@ export HTML_CONTENT="""
           <h2>Links:</h2>
           <ul>
             <li><a href=\"https://console.cloud.google.com/cloud-build/builds/${BUILD_ID}?project=${GCP_PROJECT_ID}\">Google Cloud Build</a></li>
-            <li><a href=\"https://console.cloud.google.com/storage/browser/${AIRFLOW_BREEZE_GCP_BUILD_BUCKET}/${BUILD_ID}/logs/?project=${GCP_PROJECT_ID}\">Airflow logs in GCS bucket</a></li>
+            <li><a href=\"https://console.cloud.google.com/storage/browser/${AIRFLOW_BREEZE_GCP_BUILD_BUCKET}/${BUILD_ID}/logs/?project=${GCP_PROJECT_ID}\">Task logs in GCS bucket</a></li>
             <li><a href=\"https://console.cloud.google.com/logs/viewer?authuser=0&project=${GCP_PROJECT_ID}&minLogLevel=0&expandAll=false&resource=build%2Fbuild_id%2F${BUILD_ID}\">Stackdriver logs</a></li>
             <li><a href=\"https://storage.googleapis.com/${AIRFLOW_BREEZE_GCP_BUILD_BUCKET}/${BUILD_ID}/docs/index.html\">Generated documentation</a></li>
             <li>Branch: <a href=\"https://github.com/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${INCUBATOR_AIRFLOW_REPO_NAME}/tree/${BRANCH_NAME}\">GitHub ${INCUBATOR_AIRFLOW_REPO_NAME}: ${BRANCH_NAME}</a></li>

@@ -224,7 +224,7 @@ to `True`.
 ./tests/contrib/operators/test_gcp_sql_operator_helper.py --action=after-tests`.
 ```
 
-## Naming of the resources
+## Naming the resources
 
 You have to name your resources appropriately when you create example dags and 
 update `variables.env`. Your resources (instance names, clusters etd.) should contain
@@ -307,3 +307,37 @@ The Postgres airflow database can be created using those commands:
 
 When using container environment, by default all tests are run using LocalExecutor and 
 Postrgres database is used as metadata database.
+
+## Writing your own System tests
+
+There are a few important things to remember when writing your system tests/example 
+DAGs:
+
+* Use environment variables defined in `variables.env` and follow naming conventions that 
+  are used for other operators (including service prefix). Make sure when you add new
+  variables, you also add them in 
+  [Template for variables.env](bootstrap/config/TEMPLATE-variables.env).
+* Make sure to use `AIRFLOW_BREEZE_UNIQUE_SUFFIX` in your resource name (usually instance)
+  this will make sure your parallel tests can run in isolation. Read more about it at 
+  [Naming the resources](#Naming-the-resources) chapter.
+* In case you need to run several tasks of your DAG in parallel, add 
+  `require_local_executor` set to `True` in super constructor.
+* make sure you delete the instances in tearDown() methods using gcloud commands. This
+  is a preventive action in case your tests fail - this will make sure that after the 
+  test is run you always delete costly GCP resources. You can see an example of that
+  in `GcpComputeIgmExampleDagsSystemTest`. Usually you should have a helper that 
+  implements appropriate actions. Make sure you surround your code with GCP 
+  authentication code:
+```
+  def tearDown(self):
+        self.gcp_authenticator.gcp_authenticate()
+        try:
+            ... PERFORM YOUR TEARDOWN HERE ....
+        finally:
+            self.gcp_authenticator.gcp_revoke_authentication()
+         super(<YOUR_TEST_CLASS>, self).tearDown()
+```
+* When you implement helper classes - following
+  [Custom setUp/tearDown](#Executing-custom-setUp/tearDown-manually) 
+  please implement `before-tests` and `after-tests` actions (even if they do nothing).
+  These two actions are run by Cloud Build tests before the tests. 
