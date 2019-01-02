@@ -160,10 +160,12 @@ the [Triggers page](https://console.cloud.google.com/cloud-build/triggers)
 
 These are example Slack notifications that inform you about build status:
 
-TODO: Add screenshot
+![Slack notification](images/slack_notification.png)
 
 You can follow the links and you have the Summary Page which is publicly available and
 you can share it with others.
+
+![Summary page](images/summary_page.png)
 
 You can also modify the code of slack notification function and deploy it manually.
 The code is in your workspace's `airflow-breeze-config/notifications/slack`. In order

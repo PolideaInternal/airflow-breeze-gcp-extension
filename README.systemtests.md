@@ -202,7 +202,15 @@ including some useful links such as Documentation, status of tests in each build
 well as link the log files (in Stackdriver for test logs and in Google Cloud Storage
 for particular task logs).
 
-TODO: Add screenshots.
+These are example Slack notifications that inform you about build status:
+
+![Slack notification](images/slack_notification.png)
+
+You can follow the links and you have the Summary Page which is publicly available and
+you can share it with others.
+
+![Summary page](images/summary_page.png)
+
 
 ## System test cases with costly setup phase
 
