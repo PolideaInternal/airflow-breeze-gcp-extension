@@ -628,8 +628,13 @@ if [[ ${INITIALIZE_LOCAL_VIRTUALENV} == "true" ]]; then
         echo
         exit 1
    else
+        AIRFLOW_HOME_DIR=${AIRFLOW_HOME:=${HOME}/airflow}
         echo
-        echo "Initializing the virtualenv!"
+        echo "Initializing the virtualenv: $(which python)!"
+        echo
+        echo "This will wipe out ${AIRFLOW_HOME_DIR} and reset all the databases!"
+        echo
+        ${MY_DIR}/confirm "Proceeding with the initialization"
         echo
         pushd ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}
         SYSTEM=$(uname -s)
@@ -645,6 +650,22 @@ if [[ ${INITIALIZE_LOCAL_VIRTUALENV} == "true" ]]; then
         echo "#######################################################################"
         pip install -e .[devel-all]
         popd
+        echo
+        echo "Wiping and recreating ${AIRFLOW_HOME_DIR}"
+        echo
+        rm -rvf ${AIRFLOW_HOME_DIR}
+        mkdir -p ${AIRFLOW_HOME_DIR}
+        echo
+        echo "Resetting AIRFLOW sqlite database"
+        echo
+        unset AIRFLOW__CORE__UNIT_TEST_MODE
+        airflow resetdb -y
+        echo
+        echo "Resetting AIRFLOW sqlite unit test database"
+        echo
+        export AIRFLOW__CORE__UNIT_TEST_MODE=True
+        airflow resetdb -y
+        exit
    fi
 fi
 
