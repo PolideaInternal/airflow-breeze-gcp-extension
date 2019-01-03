@@ -204,3 +204,101 @@ Note that after cleanup the disk space is not reclaimed. It will be reclaimed wh
 `docker system prune`.
 
 You may also delete the workspace folders after you are done with them.
+
+# Appendix: current ./run_environment flags
+
+```
+Usage run_environment.sh [FLAGS] [-t <TEST_TARGET | -x <COMMAND ]
+
+Flags:
+
+-h, --help
+        Shows this help message.
+
+-p, --project <GCP_PROJECT_ID>
+        Your GCP Project Id (required for the first time). Cached between runs.
+
+-w, --workspace <WORKSPACE>
+        Workspace name [default]. Folder with this name is created and sources
+        are downloaded automatically if it does not exist. Cached between runs. [default]
+
+-k, --key-name <KEY_NAME>
+        Name of the GCP service account key to use by default. Keys are stored in
+        '<WORKSPACE>/airflow-breeze-config/key' folder. Cached between runs. If not
+        specified, you need to confirm that you want to enter the environment without
+        the key. You can also switch keys manually after entering the environment
+        via 'gcloud auth activate-service-account /root/airflow-breeze-config/keys/<KEY>'.
+
+-K, --key-list
+        List all service keys that can be used with --key-name flag.
+
+-P, --python <PYTHON_VERSION>
+        Python virtualenv used by default. One of ('2.7', '3.5', '3.6'). [2.7]
+
+-f, --forward-port <PORT_NUMBER>
+        Optional - forward the port PORT_NUMBER to airflow's webserver (you must start
+        the server with 'airflow webserver' command manually).
+
+Reconfiguring existing project:
+
+-g, --reconfigure-gcp-project
+        Reconfigures the project already present in the workspace.
+        It adds all new variables in case they were added, creates new service accounts
+        and updates to latest version of the notification cloud functions if they are used.
+
+-G, --recreate-gcp-project
+        Reconfigures the project already present in the workspace but recreates
+        all sensitive data - it creates new service accounts, generates new
+        service account keys, regenerates passwords, recreates bucket. It also performs
+        all actions done by reconfigure project.
+
+Initializing your local virtualenv:
+
+-i, --initialize-local-virtualenv
+        Initializes locally created virtualenv installing all dependencies of Airflow.
+        This local virtualenv can be used to aid autocompletion and IDE support as
+        well as run unit tests directly from the IDE. You need to have virtualenv
+        activated before running this command.
+
+Managing the docker image of airflow-breeze:
+
+-r, --do-not-rebuild-image
+        Don't rebuild the incubator-airflow docker image locally
+
+-u, --upload-image
+        After rebuilding, also upload the image to GCR repository
+        (gcr.io/<GCP_PROJECT_ID>/airflow-breeze). Needs GCP_PROJECT_ID.
+
+-d, --download-image
+        Downloads the image from GCR repository (gcr.io/<GCP_PROJECT_ID>/airflow-breeze)
+        rather than build it locally. Needs GCP_PROJECT_ID.
+
+-c, --cleanup-image
+        Clean your local copy of the incubator-airflow docker image.
+        Needs GCP_PROJECT_ID.
+
+
+Automated checkout of airflow-incubator project:
+
+-R, --repository [REPOSITORY]
+        Repository to clone in case the workspace is not checked out yet
+        [].
+-B, --branch [BRANCH]
+        Branch to check out when cloning the repository specified by -R. [master]
+
+
+Optional unit tests execution (mutually exclusive with running arbitrary command):
+
+-t, --test-target <TARGET>
+        Run the specified unit test target. There might be multiple
+        targets specified.
+
+
+
+Optional arbitrary command execution (mutually exclusive with running tests):
+
+-x, --execute <COMMAND>
+        Run the specified command. It is run via 'bash -c' so if you want to run command
+        with parameters they must be all passed as one COMMAND (enclosed with ' or ".
+
+```

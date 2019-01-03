@@ -4,6 +4,10 @@ This README describes the process of setting up Airflow Breeze Development envir
 
 # Prerequisites for Airflow Breeze environment
 
+* If you are on MacOS you need gnu getopt to get the environment running. Typically 
+  uou need to run `brew install gnu-getopt` and then follow instructions (you need
+  to link the gnu getopt version to become first on the PATH).
+
 * Google Cloud Platform project which is connected to a billing account that you will use 
   to run the GCP services that Airflow will communicate with. You need to have the
   GCP project id to configure the environment for the first time. You should have at 

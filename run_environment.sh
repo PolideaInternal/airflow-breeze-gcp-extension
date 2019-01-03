@@ -318,6 +318,9 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
         echo "And link it to become default as suggested by brew by typing:"
         echo "echo 'export PATH=\"/usr/local/opt/gnu-getopt/bin:\$PATH\"' >> ~/.bash_profile"
         echo ". ~/.bash_profile"
+        echo
+        echo "Login and logout afterwards"
+        echo
     else
         echo "You do not have enhanced version of getopt binary in the path."
         echo "Please install latest/GNU version."
