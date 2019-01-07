@@ -32,7 +32,7 @@ if __name__ == '__main__':
                  'echo -n "{}" | base64 --decode | '
                  'gcloud kms decrypt --plaintext-file=- '
                  '--ciphertext-file=- --location=global '
-                 '--keyring=incubator-airflow '
+                 '--keyring=airflow '
                  '--project={} '
-                 '--key=service_accounts_crypto_key'.format(val, project_id)])
+                 '--key=airflow_crypto_key'.format(val, project_id)])
             print("{}={}".format(decrypted_key, decrypted_val.decode('utf-8')))

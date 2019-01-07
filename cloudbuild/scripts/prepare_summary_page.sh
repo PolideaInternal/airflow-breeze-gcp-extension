@@ -31,11 +31,11 @@ export AIRFLOW_BREEZE_GCP_BUILD_BUCKET="${AIRFLOW_BREEZE_GCP_BUILD_BUCKET:=examp
 export HTML_OUTPUT_DIR=${AIRFLOW_OUTPUT}/${BUILD_ID}
 export AIRFLOW_BREEZE_TEST_SUITES="${AIRFLOW_BREEZE_TEST_SUITES:=python2}"
 export AIRFLOW_BREEZE_GITHUB_ORGANIZATION=${AIRFLOW_BREEZE_GITHUB_ORGANIZATION:=apache}
-export INCUBATOR_AIRFLOW_REPO_NAME=${INCUBATOR_AIRFLOW_REPO_NAME:=incubator-airflow}
+export AIRFLOW_REPO_NAME=${AIRFLOW_REPO_NAME:=airflow}
 
 export TEST_OUTPUT_DIR=${AIRFLOW_OUTPUT}/${BUILD_ID}/tests
 
-export INCUBATOR_AIRFLOW_REPO_NAME=${INCUBATOR_AIRFLOW_REPO_NAME:-""}
+export AIRFLOW_REPO_NAME=${AIRFLOW_REPO_NAME:-""}
 export TAG_NAME=${TAG_NAME:-""}
 export BRANCH_NAME=${BRANCH_NAME:-""}
 export COMMIT_SHA=${COMMIT_SHA:-""}
@@ -67,7 +67,7 @@ if [[ ${FAILED} == "true" ]]; then
     STATUS="Overall status: <font color=\"red\">Failed!</font>"
 fi
 
-export GITHUB_COMMIT_API_URL=https://api.github.com/repos/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${INCUBATOR_AIRFLOW_REPO_NAME}/commits/${COMMIT_SHA}
+export GITHUB_COMMIT_API_URL=https://api.github.com/repos/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${AIRFLOW_REPO_NAME}/commits/${COMMIT_SHA}
 curl -s ${GITHUB_COMMIT_API_URL} >/tmp/commit.json
 export COMMIT_MESSAGE=$(cat /tmp/commit.json | jq -r ".commit.message" | head -n 1)
 export COMMITTER=$(cat /tmp/commit.json | jq -r ".commit.committer.name")
@@ -81,14 +81,14 @@ export HTML_CONTENT="""
 <head>
   <meta charset="utf-8">
 
-  <title>Summary page for the ${INCUBATOR_AIRFLOW_REPO_NAME} ${BRANCH_NAME} build ${BUILD_ID} in project ${GCP_PROJECT_ID}</title>
-  <meta name=\"description\" content=\"Summary page for the ${INCUBATOR_AIRFLOW_REPO_NAME} ${BRANCH_NAME} build ${BUILD_ID}\">
+  <title>Summary page for the ${AIRFLOW_REPO_NAME} ${BRANCH_NAME} build ${BUILD_ID} in project ${GCP_PROJECT_ID}</title>
+  <meta name=\"description\" content=\"Summary page for the ${AIRFLOW_REPO_NAME} ${BRANCH_NAME} build ${BUILD_ID}\">
 
 </head>
 
     <body>
 
-          <h1>${INCUBATOR_AIRFLOW_REPO_NAME}[${BRANCH_NAME}] - ${CURRENT_DATE}</h1>
+          <h1>${AIRFLOW_REPO_NAME}[${BRANCH_NAME}] - ${CURRENT_DATE}</h1>
           <h2>${STATUS}</h2>
           <h2>Build info:</h2>
           <ul>
@@ -108,8 +108,8 @@ export HTML_CONTENT="""
             <li><a href=\"https://console.cloud.google.com/storage/browser/${AIRFLOW_BREEZE_GCP_BUILD_BUCKET}/${BUILD_ID}/logs/?project=${GCP_PROJECT_ID}\">Task logs in GCS bucket</a></li>
             <li><a href=\"https://console.cloud.google.com/logs/viewer?authuser=0&project=${GCP_PROJECT_ID}&minLogLevel=0&expandAll=false&resource=build%2Fbuild_id%2F${BUILD_ID}\">Stackdriver logs</a></li>
             <li><a href=\"https://storage.googleapis.com/${AIRFLOW_BREEZE_GCP_BUILD_BUCKET}/${BUILD_ID}/docs/index.html\">Generated documentation</a></li>
-            <li>Branch: <a href=\"https://github.com/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${INCUBATOR_AIRFLOW_REPO_NAME}/tree/${BRANCH_NAME}\">GitHub ${INCUBATOR_AIRFLOW_REPO_NAME}: ${BRANCH_NAME}</a></li>
-            <li>Commit: <a href=\"https://github.com/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${INCUBATOR_AIRFLOW_REPO_NAME}/commit/${COMMIT_SHA}\">${COMMIT_MESSAGE}</a></li>
+            <li>Branch: <a href=\"https://github.com/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${AIRFLOW_REPO_NAME}/tree/${BRANCH_NAME}\">GitHub ${AIRFLOW_REPO_NAME}: ${BRANCH_NAME}</a></li>
+            <li>Commit: <a href=\"https://github.com/${AIRFLOW_BREEZE_GITHUB_ORGANIZATION}/${AIRFLOW_REPO_NAME}/commit/${COMMIT_SHA}\">${COMMIT_MESSAGE}</a></li>
             ${TEST_ENV_SUMMARY}
             <li><a href=\"https://storage.googleapis.com/${AIRFLOW_BREEZE_GCP_BUILD_BUCKET}/${BUILD_ID}/build_resource.json\">Build Resource (for Cloud Function Triggering)</a></li>
           </ul>

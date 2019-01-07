@@ -42,7 +42,7 @@ pushd ${GCP_SERVICE_ACCOUNT_KEY_DIR}
 for FILE in *.json.enc *.pem.enc;
 do
   gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
-     --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+     --location=global --keyring=airflow --key=airflow_crypto_key \
      --project=${GCP_PROJECT_ID}\
      && echo Decrypted ${FILE}
 done

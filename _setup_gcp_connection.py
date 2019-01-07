@@ -20,7 +20,7 @@ import json
 import os
 import sys
 
-from airflow import models
+from airflow.models import Connection
 from airflow import settings
 
 KEYPATH_EXTRA = 'extra__google_cloud_platform__key_path'
@@ -42,8 +42,8 @@ if not os.path.isfile(full_key_path):
 session = settings.Session()
 try:
     # noinspection PyUnresolvedReferences
-    conn = session.query(models.Connection).filter(
-      models.Connection.conn_id == 'google_cloud_default')[0]
+    conn = session.query(Connection).filter(
+      Connection.conn_id == 'google_cloud_default')[0]
     extras = conn.extra_dejson
     extras[KEYPATH_EXTRA] = full_key_path
     print('Setting GCP key file to ' + full_key_path)

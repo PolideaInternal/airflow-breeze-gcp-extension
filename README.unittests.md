@@ -60,7 +60,7 @@ You can read more about system tests in [README.systemtests.md](README.systemtes
 
 In order to run the tests, ensure you have set up TravisCI on your fork of the Airflow
 GitHub repo. This is described in
-[Travis CI setup instructions](https://github.com/apache/incubator-airflow/blob/master/CONTRIBUTING.md#testing-on-travis-ci)
+[Travis CI setup instructions](https://github.com/apache/airflow/blob/master/CONTRIBUTING.md#testing-on-travis-ci)
 
 This will make all unit tests to be executed automatically for all your
 branches/PR pushes.

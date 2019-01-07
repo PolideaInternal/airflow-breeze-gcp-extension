@@ -26,7 +26,7 @@ CMDNAME="$(basename -- "$0")"
 
 # Repositories
 
-APACHE_AIRFLOW_REPO=https://github.com/apache/incubator-airflow.git
+APACHE_AIRFLOW_REPO=https://github.com/apache/airflow.git
 AIRFLOW_BREEZE_REPO=https://github.com/PolideaInternal/airflow-breeze
 
 #################### Port forwarding settings
@@ -48,7 +48,7 @@ CLEANUP_IMAGE=false
 LIST_KEYS=false
 # initializes local virtualenv
 INITIALIZE_LOCAL_VIRTUALENV=false
-# Repository which is used to clone incubator-airflow from - wh
+# Repository which is used to clone airflow from - wh
 # en it's not yet checked out (default is the Apache one)
 AIRFLOW_REPOSITORY=""
 # Branch of the repository to check out when it's first cloned
@@ -80,7 +80,7 @@ build_local () {
   echo
   echo "Building docker image '${IMAGE_NAME}'"
   docker build  \
-    --build-arg AIRFLOW_REPO_URL=https://github.com/PolideaInternal/incubator-airflow.git \
+    --build-arg AIRFLOW_REPO_URL=https://github.com/PolideaInternal/airflow.git \
     --build-arg AIRFLOW_REPO_BRANCH=GCP_DOCUMENTATION_REVIEW \
     . -t ${IMAGE_NAME}
   if [[ "${UPLOAD_IMAGE}" != "false" ]]; then
@@ -108,7 +108,7 @@ cleanup () {
 
 # Builds a docker run command based on settings and evaluates it.
 #
-# The workspace is run in an interactive bash session and the incubator-airflow
+# The workspace is run in an interactive bash session and the airflow
 # directory is mounted as well as key directory for sharing GCP key.
 #
 # Also becomes superuser within container, installs
@@ -141,7 +141,7 @@ run_container () {
   # String used to build the container run command.
   CMD="""\
 docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
- -v ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}:/workspace \
+ -v ${AIRFLOW_BREEZE_AIRFLOW_DIR}:/workspace \
  -v ${AIRFLOW_BREEZE_OUTPUT_DIR}:/airflow/output \
  -v ${AIRFLOW_BREEZE_CONFIG_DIR}:/root/airflow-breeze-config \
  --env-file=${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env \
@@ -174,7 +174,7 @@ decrypt_all_files() {
       DECRYPTED_FILE=$(basename ${FILE} .enc)
       if [[ ${FILE} -nt ${DECRYPTED_FILE} ]]; then
           gcloud kms decrypt --plaintext-file $(basename ${FILE} .enc) --ciphertext-file ${FILE} \
-             --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+             --location=global --keyring=airflow --key=airflow_crypto_key \
              --project=${AIRFLOW_BREEZE_PROJECT_ID} \
                 && echo Decrypted ${FILE}
       else
@@ -259,7 +259,7 @@ Initializing your local virtualenv:
 Managing the docker image of airflow-breeze:
 
 -r, --do-not-rebuild-image
-        Don't rebuild the incubator-airflow docker image locally
+        Don't rebuild the airflow docker image locally
 
 -u, --upload-image
         After rebuilding, also upload the image to GCR repository
@@ -270,11 +270,11 @@ Managing the docker image of airflow-breeze:
         rather than build it locally. Needs GCP_PROJECT_ID.
 
 -c, --cleanup-image
-        Clean your local copy of the incubator-airflow docker image.
+        Clean your local copy of the airflow docker image.
         Needs GCP_PROJECT_ID.
 
 
-Automated checkout of airflow-incubator project:
+Automated checkout of airflow project:
 
 -R, --repository [REPOSITORY]
         Repository to clone in case the workspace is not checked out yet
@@ -435,7 +435,7 @@ echo ${AIRFLOW_BREEZE_WORKSPACE_NAME} > ${AIRFLOW_BREEZE_WORKSPACE_FILE}
 
 export AIRFLOW_BREEZE_CONFIG_DIR="${AIRFLOW_BREEZE_WORKSPACE_DIR}/airflow-breeze-config"
 export AIRFLOW_BREEZE_KEYS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/keys"
-export AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR=${AIRFLOW_BREEZE_WORKSPACE_DIR}/incubator-airflow
+export AIRFLOW_BREEZE_AIRFLOW_DIR=${AIRFLOW_BREEZE_WORKSPACE_DIR}/airflow
 export AIRFLOW_BREEZE_OUTPUT_DIR=${AIRFLOW_BREEZE_WORKSPACE_DIR}/output
 
 ################## Files ###############################################################
@@ -516,10 +516,10 @@ fi
 ################## Image name ###############################################################
 export AIRFLOW_BREEZE_IMAGE_NAME=${IMAGE_NAME="gcr.io/${AIRFLOW_BREEZE_PROJECT_ID}/airflow-breeze:${AIRFLOW_REPOSITORY_BRANCH}"}
 
-################## Check out incubator airflow dir #############################################
-if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
+################## Check out airflow dir #############################################
+if [[ ! -d "${AIRFLOW_BREEZE_AIRFLOW_DIR}" ]]; then
   echo
-  echo "The workspace ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR} does not exist."
+  echo "The workspace ${AIRFLOW_BREEZE_AIRFLOW_DIR} does not exist."
   echo
   if [[ "${AIRFLOW_REPOSITORY}" == "" ]]; then
       echo
@@ -529,13 +529,13 @@ if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
       echo
       exit 1
   fi
-  echo "Attempting to clone ${AIRFLOW_REPOSITORY} to ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
+  echo "Attempting to clone ${AIRFLOW_REPOSITORY} to ${AIRFLOW_BREEZE_AIRFLOW_DIR}"
   echo "and checking out ${AIRFLOW_REPOSITORY_BRANCH} branch"
   echo
-  mkdir -p "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
-  && chmod 777 "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
-  && git clone "${AIRFLOW_REPOSITORY}" "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
-  && pushd "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" \
+  mkdir -p "${AIRFLOW_BREEZE_AIRFLOW_DIR}" \
+  && chmod 777 "${AIRFLOW_BREEZE_AIRFLOW_DIR}" \
+  && git clone "${AIRFLOW_REPOSITORY}" "${AIRFLOW_BREEZE_AIRFLOW_DIR}" \
+  && pushd "${AIRFLOW_BREEZE_AIRFLOW_DIR}" \
   && git checkout "${AIRFLOW_REPOSITORY_BRANCH}" \
   && popd
   echo
@@ -544,18 +544,18 @@ if [[ ! -d "${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}" ]]; then
   echo
   echo "Please make sure you have your own fork of both repositories:"
   echo "Airflow Breeze: ${AIRFLOW_BREEZE_REPO}"
-  echo "Incubator Airflow: ${APACHE_AIRFLOW_REPO}"
+  echo "Airflow: ${APACHE_AIRFLOW_REPO}"
   echo
   echo
   echo "Enable Google Cloud Build Application in both projects:"
   echp
-  echo " * fork of Apache's https://github.com/apache/incubator-airflow"
+  echo " * fork of Apache's https://github.com/apache/airflow"
   echo " * fork of Airflow Breeze http://github.com/PolideaInternal/airflow-breeze"
   echo
   echo "This can be done via: https://github.com/marketplace/google-cloud-build"
   echo
   echo "After you set it up it, you have to push the 'airflow-breeze' and wait until it completes."
-  echo "Then any time you push 'incubator-airflow' it will perform automated build and testing of your project."
+  echo "Then any time you push 'airflow' it will perform automated build and testing of your project."
   echo
   echo "In the future you can always check status of your builds via "
   echo "https://console.cloud.google.com/cloud-build/builds?project=${AIRFLOW_BREEZE_PROJECT_ID} ."
@@ -636,7 +636,7 @@ if [[ ${INITIALIZE_LOCAL_VIRTUALENV} == "true" ]]; then
         echo
         ${MY_DIR}/confirm "Proceeding with the initialization"
         echo
-        pushd ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}
+        pushd ${AIRFLOW_BREEZE_AIRFLOW_DIR}
         SYSTEM=$(uname -s)
         echo "#######################################################################"
         echo "  If you have trouble installing all dependencies you might need to run:"
@@ -743,7 +743,7 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo
     echo " WORKSPACE                     = ${AIRFLOW_BREEZE_WORKSPACE_NAME}"
     echo
-    echo " AIRFLOW_SOURCE_DIR            = ${AIRFLOW_BREEZE_INCUBATOR_AIRFLOW_DIR}"
+    echo " AIRFLOW_SOURCE_DIR            = ${AIRFLOW_BREEZE_AIRFLOW_DIR}"
     echo " AIRFLOW_BREEZE_KEYS_DIR       = ${AIRFLOW_BREEZE_KEYS_DIR}"
     echo " AIRFLOW_BREEZE_CONFIG_DIR     = ${AIRFLOW_BREEZE_CONFIG_DIR}"
     echo " AIRFLOW_BREEZE_OUTPUT_DIR     = ${AIRFLOW_BREEZE_OUTPUT_DIR}"

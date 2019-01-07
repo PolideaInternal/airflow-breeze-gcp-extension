@@ -8,7 +8,7 @@ Google Cloud Platform services.
 # About Airflow Breeze
 
 The Airflow Breeze Container allows you to easily create Docker development
-environment to work on apache/incubator-airflow repository and test your changes
+environment to work on apache/airflow repository and test your changes
 interfacing with a Google Cloud Platform without going through the overhead of 
 manually setting up an Airflow environment, Google Cloud Platform project and 
 configuring service accounts to access the platform in secure way - all done in
@@ -39,7 +39,7 @@ You can read more about architecture of the environment in
 
 -   Build and manage container image that contains all dependencies for Apache Airflow
     to build and run it in one of the three python versions:  2.7, 3.5, 3.6
--   Develop source code within the incubator-airflow folder where source of Apache Airflow
+-   Develop source code within the `airflow` folder where source of Apache Airflow
     are checked out (preferably outside of the container - using IDE that is part of 
     the host rather than container environment).
 -   Test your code easily within the container using Unit Tests or 
@@ -263,7 +263,7 @@ Initializing your local virtualenv:
 Managing the docker image of airflow-breeze:
 
 -r, --do-not-rebuild-image
-        Don't rebuild the incubator-airflow docker image locally
+        Don't rebuild the airflow docker image locally
 
 -u, --upload-image
         After rebuilding, also upload the image to GCR repository
@@ -274,11 +274,11 @@ Managing the docker image of airflow-breeze:
         rather than build it locally. Needs GCP_PROJECT_ID.
 
 -c, --cleanup-image
-        Clean your local copy of the incubator-airflow docker image.
+        Clean your local copy of the airflow docker image.
         Needs GCP_PROJECT_ID.
 
 
-Automated checkout of airflow-incubator project:
+Automated checkout of airflow project:
 
 -R, --repository [REPOSITORY]
         Repository to clone in case the workspace is not checked out yet

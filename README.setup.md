@@ -31,7 +31,7 @@ This README describes the process of setting up Airflow Breeze Development envir
   - your user should be in `docker` group. See [Docker installation guide](https://docs.docker.com/install/).
   
 * You should have forks of the two projects in in your organization or your GitHub user:
-  * [Apache Incubator Airflow](https://github.com/apache/incubator-airflow)
+  * [Apache Airflow](https://github.com/apache/airflow)
   * [Airflow Breeze](http://github.com/PolideaInternal/airflow-breeze).
 
 * In order to run (via IDE) System Tests which require parallel execution (LocalExecutor) 
@@ -73,22 +73,22 @@ Note! We always refer to workspace with it's name which is relative to main
 ## Checking out the repositories
 
 When you run the environment for the first time it will attempt to automatically
-check out the incubator-airflow project from your Github fork of the
-main incubator-airflow project in your workspace. 
+check out the `airflow` project from your Github fork of the
+main `apache/airflow` project in your workspace. 
 The intended workflow is that you make a fork first with either your private account 
 or your organisation and then you specify that fork the first time you run the project. 
 Reminder - use relative name for the workspace not full path.
 
 ```
-./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE> --repository git@github.com:<ORGANIZATION>/incubator-airflow.git
+./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE> --repository git@github.com:<ORGANIZATION>/airflow.git
 ```
 
 Running the environment for the first time performs the following actions:
 
-* Checkout the incubator-airflow project from your fork and place it in the 
+* Checkout the `airflow` project from your fork and place it in the 
   workspace specified (in "workspaces/<WORKSPACE_NAME>" subfolders of the airflow-breeze
   project. If you omit workspace, the "default" workspace is used. The project
-  is checked out in `workspaces/<WORKSPACE>/incubator-airflow` directory
+  is checked out in `workspaces/<WORKSPACE>/airflow` directory
 
 * In case project id is already configured for Airflow Breeze by your team, it checks-out
   project's configuration to <WORKSPACE>/airflow-breeze-config directory. More info about
@@ -146,7 +146,7 @@ development workflow.
 The setup process guides you how to do it but in summary this is is as 
 easy as connecting [Google Cloud Build application](https://github.com/marketplace/google-cloud-build)
 to your forks of [airflow-breeze](http://github.com/PolideaInternal/airflow-breeze) and
-[incubator-airflow](https://github.com/apache/incubator-airflow) GitHub projects.
+[airflow](https://github.com/apache/airflow) GitHub projects.
 
 The first project sets up automated build of your own airflow-breeze image (stores it in
 Google Container Registry) and the second is using this image to perform actual test
@@ -228,14 +228,14 @@ service accounts of the project.
 ## Setting up Travis CI for unit tests
 
 You should also setup Travis CI for running all unit tests automatically as described in
-[CONTRIBUTING.md](https://github.com/apache/incubator-airflow/blob/master/CONTRIBUTING.md#testing-on-travis-ci)
+[CONTRIBUTING.md](https://github.com/apache/airflow/blob/master/CONTRIBUTING.md#testing-on-travis-ci)
 
 # Appendixes
 
 ## Reinstalling latest airflow dependencies
 
 When you already have a local `airflow-breeze` image built, the dependencies of
-incubator-airflow are installed at the time of the installation. Even if they
+airflow are installed at the time of the installation. Even if they
 change later and new dependencies will be added, this does not cause the dependencies
 to be re-installed - they are only added incrementally when you enter the container
 environment. The more dependencies are added, the longer it will take to enter the
@@ -275,7 +275,7 @@ Additionally the `airflow-breeze-config` directory contains:
   file is git-ignored so that it won't be accidentally checked in to the repository.
 
 Note that you should commit and push/pull changes to the `airflow-breeze-config` 
-additionally to changes in the main `incubator-airflow` project. This way you can share
+additionally to changes in the main `airflow` project. This way you can share
 new/changed configuration with your team. Note that there are also configuration
 templates in `bootstrap` folder (prefixed with `TEMPLATE-`) and whenever you enter
 the container, the `./run_environment.sh` script verifies automatically if you have 

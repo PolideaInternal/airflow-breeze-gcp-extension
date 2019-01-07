@@ -7,7 +7,7 @@ let ps;
 const IncomingWebhook = require('@slack/client').IncomingWebhook;
 
 const GCS_BUCKET = process.env.GCS_BUCKET;
-const INCUBATOR_AIRFLOW_REPO_NAME = process.env.INCUBATOR_AIRFLOW_REPO_NAME;
+const AIRFLOW_REPO_NAME = process.env.AIRFLOW_REPO_NAME;
 const PROJECT_ID = process.env.PROJECT_ID;
 const AIRFLOW_BREEZE_GITHUB_ORGANIZATION = process.env.AIRFLOW_BREEZE_GITHUB_ORGANIZATION;
 
@@ -49,7 +49,7 @@ module.exports.slack_notify = async (data, context) => {
             return;
         }
         if (build.substitutions === undefined || build.substitutions.REPO_NAME === undefined ||
-            build.substitutions.REPO_NAME !==  INCUBATOR_AIRFLOW_REPO_NAME) {
+            build.substitutions.REPO_NAME !==  AIRFLOW_REPO_NAME) {
             console.log(`Skipping slack notification on substitutions = ${JSON.stringify(build.substitutions)}`);
             return;
         }

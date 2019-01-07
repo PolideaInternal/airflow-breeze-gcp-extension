@@ -54,7 +54,7 @@ echo "Encrypting all files '${FILES}'"
 for FILE in ${FILES}
 do
   gcloud kms encrypt --plaintext-file ${FILE} --ciphertext-file ${FILE}.enc \
-     --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+     --location=global --keyring=airflow --key=airflow_crypto_key \
      --project=${AIRFLOW_BREEZE_PROJECT_ID} \
      && echo Encrypted ${FILE}
 done
@@ -65,7 +65,7 @@ FILES=$(ls */secret.variables.yaml 2>/dev/null || true)
 for FILE in ${FILES}
 do
   gcloud kms encrypt --plaintext-file ${FILE} --ciphertext-file ${FILE}.enc \
-     --location=global --keyring=incubator-airflow --key=service_accounts_crypto_key \
+     --location=global --keyring=airflow --key=airflow_crypto_key \
      --project=${AIRFLOW_BREEZE_PROJECT_ID} \
      && echo Encrypted ${FILE}
 done

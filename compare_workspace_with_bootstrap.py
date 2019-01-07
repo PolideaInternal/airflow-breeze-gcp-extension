@@ -50,8 +50,8 @@ def get_current_workspace_info():
                             " The file {} is missing.".format(workspace_file))
         raise e
     workspace_dir = os.path.join(current_file_dir, "workspaces", workspace)
-    incubator_airflow_config_dir = os.path.join(workspace_dir, 'airflow-breeze-config')
-    incubator_airflow_keys_dir = os.path.join(incubator_airflow_config_dir, 'keys')
+    airflow_config_dir = os.path.join(workspace_dir, 'airflow-breeze-config')
+    airflow_keys_dir = os.path.join(airflow_config_dir, 'keys')
     project_file = os.path.join(workspace_dir, '.project_id')
     try:
         with open(project_file) as f:
@@ -61,15 +61,15 @@ def get_current_workspace_info():
             raise Exception("Please select project with running run_environment.sh first!"
                             " The file {} is missing.".format(project_file))
         raise e
-    if not os.path.isdir(incubator_airflow_config_dir):
-        print("The {} is not variable dir.".format(incubator_airflow_config_dir))
+    if not os.path.isdir(airflow_config_dir):
+        print("The {} is not variable dir.".format(airflow_config_dir))
         exit(1)
-    if not os.path.isdir(incubator_airflow_keys_dir):
-        print("The {} is not keys dir.".format(incubator_airflow_keys_dir))
+    if not os.path.isdir(airflow_keys_dir):
+        print("The {} is not keys dir.".format(airflow_keys_dir))
         exit(1)
-    variable_env_file = os.path.join(incubator_airflow_config_dir, 'variables.env')
-    return project_id, workspace_dir, incubator_airflow_config_dir, \
-        incubator_airflow_keys_dir, variable_env_file
+    variable_env_file = os.path.join(airflow_config_dir, 'variables.env')
+    return project_id, workspace_dir, airflow_config_dir, \
+        airflow_keys_dir, variable_env_file
 
 
 def read_all_variable_keys(file):

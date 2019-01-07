@@ -121,7 +121,7 @@ ENV SLUGIFY_USES_TEXT_UNIDECODE yes
 # Note. Increase this number to force rebuilding to the latest dependencies
 ENV REBUILD_AIRFLOW_BREEZE_VERSION=5
 
-ARG AIRFLOW_REPO_URL=https://github.com/apache/incubator-airflow
+ARG AIRFLOW_REPO_URL=https://github.com/apache/airflow
 ARG AIRFLOW_REPO_BRANCH=master
 
 RUN echo Checking out airflow source from ${AIRFLOW_REPO_URL}, branch: ${AIRFLOW_REPO_BRANCH}

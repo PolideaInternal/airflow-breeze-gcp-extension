@@ -45,8 +45,8 @@ HELLO_WORLD_REPO_NAME = "hello-world"
 TARGET_DIR = ''
 
 IGNORE_SLACK = False
-KEYRING = 'incubator-airflow'
-KEY = 'service_accounts_crypto_key'
+KEYRING = 'airflow'
+KEY = 'airflow_crypto_key'
 BUILD_BUCKET_SUFFIX = '-builds'
 TEST_BUCKET_SUFFIX = '-tests'
 
@@ -197,7 +197,6 @@ def decrypt_value(value):
             '--key={} --project={}'.format(value, KEYRING, KEY, project_id)
         ]
     ).decode("utf-8")
-
 
 def encrypt_file(file):
     print("Encrypting file {}".format(file))
@@ -422,8 +421,8 @@ def get_random_password():
 def read_manual_parameters(regenerate_passwords):
     global IGNORE_SLACK
     VARIABLES['GCP_PROJECT_ID'] = project_id
-    if not VARIABLES.get('INCUBATOR_AIRFLOW_REPO_NAME'):
-        VARIABLES['INCUBATOR_AIRFLOW_REPO_NAME'] = 'incubator-airflow'
+    if not VARIABLES.get('AIRFLOW_REPO_NAME'):
+        VARIABLES['AIRFLOW_REPO_NAME'] = 'airflow'
     if regenerate_passwords:
         VARIABLES['GCSQL_MYSQL_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
         VARIABLES['GCSQL_POSTGRES_PASSWORD_ENCRYPTED'] = encrypt_value(get_random_password())
@@ -433,7 +432,7 @@ def read_manual_parameters(regenerate_passwords):
                    'test files are stored (bucket name: {}<SUFFIX>)'.format(project_id))
     read_parameter('AIRFLOW_BREEZE_GITHUB_ORGANIZATION',
                    'Your GitHub user/organization name')
-    read_parameter('INCUBATOR_AIRFLOW_REPO_NAME',
+    read_parameter('AIRFLOW_REPO_NAME',
                    'Name of your repository in your user/organization')
     setup_slack_notifications = input("Setup Slack notifications ? (y/n) [y]")
     if setup_slack_notifications == 'y' or setup_slack_notifications == 'Y' \
@@ -551,7 +550,11 @@ if __name__ == '__main__':
         # Read current values from environment to retain their values
         VARIABLES.update(os.environ)
         if VARIABLES.get('SLACK_HOOK_ENCRYPTED'):
-            VARIABLES['SLACK_HOOK'] = decrypt_value(VARIABLES.get('SLACK_HOOK_ENCRYPTED'))
+            try:
+                VARIABLES['SLACK_HOOK'] = decrypt_value(VARIABLES.get('SLACK_HOOK_ENCRYPTED'))
+            except subprocess.CalledProcessError:
+                read_parameter('SLACK_HOOK', "Could not decrypt SLACK_HOOK. "
+                                             "Provide new value!")
         if args.recreate_project:
             confirm = input("\nThe project '{}' is already bootstrapped.\n\n"
                             "The {} repository is already created and checked out.\n\n"
