@@ -131,5 +131,6 @@ else
 fi
 
 cp -rv ${AIRFLOW_HOME}/logs/* ${LOG_OUTPUT_DIR}
+rm -rvf ${LOG_OUTPUT_DIR}/scheduler
 
 popd
