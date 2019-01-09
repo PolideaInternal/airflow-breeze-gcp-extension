@@ -20,7 +20,7 @@ import json
 import os
 import sys
 
-from airflow.models import Connection
+from airflow.models.connection import Connection
 from airflow import settings
 
 KEYPATH_EXTRA = 'extra__google_cloud_platform__key_path'
