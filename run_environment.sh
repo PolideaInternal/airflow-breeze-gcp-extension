@@ -204,7 +204,7 @@ decrypt_all_variables() {
 usage() {
       echo """
 
-Usage ${CMDNAME} [FLAGS] [-t <TEST_TARGET | -x <COMMAND ]
+Usage ${CMDNAME} [FLAGS] [-t <TEST_TARGET> | -x <COMMAND> ]
 
 Flags:
 
@@ -250,7 +250,7 @@ Reconfiguring existing project:
 
 Initializing your local virtualenv:
 
--v, --initialize-local-virtualenv
+-e, --initialize-local-virtualenv
         Initializes locally created virtualenv installing all dependencies of Airflow.
         This local virtualenv can be used to aid autocompletion and IDE support as
         well as run unit tests directly from the IDE. You need to have virtualenv
@@ -330,7 +330,7 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:KP:f:iudcgGvR:B:t:x: \
+    -o hp:w:k:KP:f:iudcgGeR:B:t:x: \
     -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,do-not-rebuild-image,\
 upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,\
 initialize-local-virtualenv,repository:,branch:,test-target:,execute: \
@@ -392,7 +392,7 @@ do
       RECONFIGURE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
     -G|--recreate-gcp-project)
       RECREATE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
-    -v|--initialize-local-virtualenv)
+    -e|--initialize-local-virtualenv)
       INITIALIZE_LOCAL_VIRTUALENV=true; RUN_DOCKER=false; shift ;;
     -R|--repository)
       AIRFLOW_REPOSITORY="${2}"; shift 2 ;;

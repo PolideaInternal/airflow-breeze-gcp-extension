@@ -63,13 +63,16 @@ once to have everything setup for you IDE integration and in order to be able
 to run [Unit tests](README.unittests.md) or [System tests](README.systemtests.md)
 using your IDE.
 
-The first time you enter the environment you will have to specify project,
-workspace and GCP service account key to use. Optionally you can specify
+The first time you enter the environment you will have to specify project anc
+workspace. Optionally you can specify
 Python version (2.7, 3.5 or 3.6).
 
 ```
-./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE> --key <KEY_NAME> [--python <PYTHON_VERSION>]
+./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE> [ --python <PYTHON_VERSION>]
 ```
+
+You will get information that you enter the environment without the GCP 
+service account key - but that's OK and you are OK to proceed.
 
 When you enter the environment, it caches information about the project,
 workspace, key and python versions used so that next time you do not have to 
@@ -116,7 +119,7 @@ If you want to use a different workspace, use the --workspace flag. This will
 automatically create the workspace if the workspace does not exist.
 
 ```
-./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE> --key <KEY_NAME>
+./run_environment.sh --project <GCP_PROJECT_ID> --workspace <WORKSPACE>
 ```
 
 ## Choosing different service account key
