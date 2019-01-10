@@ -107,6 +107,13 @@ running `set_gcp_key <KEY_NAME>`. This will also reset the Postgres database
 and re-link all symbolic links to example DAGs as explained in 
 [README.systemtests.md](README.systemtests.md#Example-DAGs)
 
+## Resetting the database
+
+Every time you enter the environment, the database is created from scratch. You can
+force-reset the database without leaving the environment with above mentioned
+`set_gcp_key <KEY_NAME>` command. The key should be provided before after
+resetting the database it must be created as connection in the database.
+
 ## Running the container with last used configuration
 
 Last used workspace, project, key and python version are used in this case:
