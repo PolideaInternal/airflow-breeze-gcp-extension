@@ -50,6 +50,8 @@ KEY = 'airflow_crypto_key'
 BUILD_BUCKET_SUFFIX = '-builds'
 TEST_BUCKET_SUFFIX = '-tests'
 
+TEST_SUITES = ['python27', 'python35', 'python36']
+
 VARIABLES = {}
 
 
@@ -429,7 +431,7 @@ def read_manual_parameters(regenerate_passwords):
     read_parameter('BUILD_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
                    'artifacts are stored (bucket name: {}<SUFFIX>)'.format(project_id))
     read_parameter('TEST_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
-                   'test files are stored (bucket name: {}<SUFFIX>)'.format(project_id))
+                   'test files are stored (bucket name: {}<SUFFIX>-<TEST_SUITE>)'.format(project_id))
     read_parameter('AIRFLOW_BREEZE_GITHUB_ORGANIZATION',
                    'Your GitHub user/organization name')
     read_parameter('AIRFLOW_REPO_NAME',
@@ -494,19 +496,21 @@ def create_and_configure_buckets():
     create_bucket(build_bucket,
                   recreate_bucket=args.recreate_project, read_all=True,
                   lifecycle_rule=BUILD_LIFECYCLE_RULE_FILE)
-    create_bucket(test_bucket,
-                  recreate_bucket=args.recreate_project, read_all=False,
-                  files_dir=TEST_FILES_DIR)
+    gcp_cloudsql_service_account = "gcp-cloudsql-account@{}.iam.gserviceaccount.com". \
+        format(project_id)
+    for test_suite in TEST_SUITES:
+        test_bucket_full_name = test_bucket + "-" + test_suite
+        create_bucket(test_bucket_full_name,
+                      recreate_bucket=args.recreate_project, read_all=False,
+                      files_dir=TEST_FILES_DIR)
+        grant_storage_role_to_service_account(
+            test_bucket_full_name,
+            "admin",
+            gcp_cloudsql_service_account)
     grant_storage_role_to_service_account(
         build_bucket,
         "objectCreator",
         "{}@appspot.gserviceaccount.com".format(project_id))
-    gcp_cloudsql_service_account = "gcp-cloudsql-account@{}.iam.gserviceaccount.com".\
-        format(project_id)
-    grant_storage_role_to_service_account(
-        test_bucket,
-        "admin",
-        gcp_cloudsql_service_account)
 
 
 if __name__ == '__main__':
@@ -610,7 +614,7 @@ if __name__ == '__main__':
     create_all_service_accounts(recreate_service_accounts=args.recreate_project)
     end_section()
 
-    start_section("Creating build and test bucket for project {}".format(project_id))
+    start_section("Creating build and test buckets for project {}".format(project_id))
 
     create_and_configure_buckets()
     end_section()
