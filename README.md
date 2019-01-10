@@ -51,19 +51,25 @@ You can read more about architecture of the environment in
     automatically and run all relevant unit and System Tests as part of Pull Request 
     process of your GitHub project
 
-# Setting breeze up
+# Setting up Google Cloud Project with Airflow Breeze
 
 Bootstrapping the Google Cloud Platform project, first time setup of your workspace
-and configuration is described in [README.setup.md](README.setup.md)
+and configuration is described in [README.setup.md](README.setup.md). You 
+can skip this part entirely if the Google Cloud Platform project is already setup
+for Airflow Breeze and you setup local development environment with already
+existing project id.
 
-# Entering the container environment
+# Creating local development environment
+
+You need to fulfill prerequisites described in 
+[README.prerequisites.md](README.prerequisites.md) in order to proceed.
 
 To run the container, use `./run_environment.sh.`. You need to do it at least
 once to have everything setup for you IDE integration and in order to be able
 to run [Unit tests](README.unittests.md) or [System tests](README.systemtests.md)
 using your IDE.
 
-The first time you enter the environment you will have to specify project anc
+The first time you enter the environment you will have to specify project and
 workspace. Optionally you can specify
 Python version (2.7, 3.5 or 3.6).
 
@@ -72,23 +78,27 @@ Python version (2.7, 3.5 or 3.6).
 ```
 
 You will get information that you enter the environment without the GCP 
-service account key - but that's OK and you are OK to proceed.
+service account key - that's OK and you are OK to proceed at this stage. You can always 
+choose or change the key later.
 
 When you enter the environment, it caches information about the project,
 workspace, key and python versions used so that next time you do not have to 
 specify it when you run `./run_environment.sh`. 
 
-You can always override those cached values with using appropriate flags.
+You can always override those cached values with using appropriate flags 
+(see [Entering the container](#entering-the-container) chapter on how to do it.
 
 When you enter the environment, your source files are mounted inside the docker
-container (in `/workspace` folder) and changes to the files done outside of
-docker container are visible in the container, and the other way round. 
+container (in `/workspace` folder) and changes to the sources done in host
+are synchronized in real time with container sources. 
 This is a very convenient development environment as you can use your local IDE 
 to work on the code and you can keep the environment running all the time 
 and not worry about copying the files.
 
-AIRFLOW_HOME is set to /airflow - and you will find all the logs, dag folder, 
+AIRFLOW_HOME is set to `/airflow` - and you will find all the logs, dag folder, 
 unit test databases etc. there.
+
+# Entering the container
 
 ## Changing the service account key without leaving the environment
 
@@ -257,7 +267,7 @@ Reconfiguring existing project:
 
 Initializing your local virtualenv:
 
--v, --initialize-local-virtualenv
+-e, --initialize-local-virtualenv
         Initializes locally created virtualenv installing all dependencies of Airflow.
         This local virtualenv can be used to aid autocompletion and IDE support as
         well as run unit tests directly from the IDE. You need to have virtualenv
