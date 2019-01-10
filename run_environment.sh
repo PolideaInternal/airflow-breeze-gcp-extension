@@ -164,6 +164,19 @@ docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
   eval ${CMD}
 }
 
+check_encrypt_decrypt_permission() {
+    ################## Checking permissions for KMS #############################
+  echo "*************************************************************************"
+  echo
+  echo "Checking required permissions in KMS"
+  echo
+  echo "*************************************************************************"
+    echo "TEST" | gcloud kms encrypt --plaintext-file=- --ciphertext-file=- \
+         --location=global --keyring=airflow --key=airflow_crypto_key \
+         --project=${AIRFLOW_BREEZE_PROJECT_ID} >/dev/null || \
+         (echo "ERROR! You should have KMS Encrypt/Decrypt Role assigned in Google Cloud Platform. Exiting!" && exit 1)
+}
+
 decrypt_all_files() {
     ################## Decrypt all files variables #############################
     pushd ${AIRFLOW_BREEZE_KEYS_DIR}
@@ -595,6 +608,8 @@ fi
 # Cache project and python version for subsequent executions
 echo ${AIRFLOW_BREEZE_PROJECT_ID} > ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
 echo ${AIRFLOW_BREEZE_PYTHON_VERSION} > ${AIRFLOW_BREEZE_PYTHON_VERSION_FILE}
+
+check_encrypt_decrypt_permission
 
 if [[ ${RECREATE_GCP_PROJECT} == "true" ]]; then
     echo && echo "Reconfiguring project in GCP" && echo &&

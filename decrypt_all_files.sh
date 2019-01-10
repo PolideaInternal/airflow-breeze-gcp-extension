@@ -48,9 +48,13 @@ if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID}" ]]; then
   fi
 fi
 
+echo "TEST" | gcloud kms encrypt --plaintext-file=- --ciphertext-file=- \
+     --location=global --keyring=airflow --key=airflow_crypto_key \
+     --project=${AIRFLOW_BREEZE_PROJECT_ID} >/dev/null || \
+     (echo "ERROR! You should have KMS Encrypt/Decrypt Role assigned in Google Cloud Platform. Exiting!" && exit 1)
 
 pushd ${AIRFLOW_BREEZE_KEYS_DIR}
-FILES=$(ls *.json.enc *.pem.enc 2>/dev/null || true)
+FILES=$(ls *.enc 2>/dev/null || true)
 echo "Decrypting all files '${FILES}'"
 for FILE in ${FILES}
 do
