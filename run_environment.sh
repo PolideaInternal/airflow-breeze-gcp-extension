@@ -240,17 +240,17 @@ Reconfiguring existing project:
 -g, --reconfigure-gcp-project
         Reconfigures the project already present in the workspace.
         It adds all new variables in case they were added, creates new service accounts
-        and updates to latest version of the notification cloud functions if they are used.
+        and updates to latest version of the used notification cloud functions.
 
 -G, --recreate-gcp-project
-        Reconfigures the project already present in the workspace but recreates
-        all sensitive data - it creates new service accounts, generates new
-        service account keys, regenerates passwords, recreates bucket. It also performs
-        all actions done by reconfigure project.
+        Recreates the project already present in the workspace. DELETES AND RECREATES
+        all sensitive resources. DELETES AND RECREATES buckets with result of builds
+        DELETES AND RECREATES service account keys, DELETES AND GENERATES encrypted
+        passwords. Then it performs all actions as in reconfigure project.
 
 Initializing your local virtualenv:
 
--i, --initialize-local-virtualenv
+-v, --initialize-local-virtualenv
         Initializes locally created virtualenv installing all dependencies of Airflow.
         This local virtualenv can be used to aid autocompletion and IDE support as
         well as run unit tests directly from the IDE. You need to have virtualenv
@@ -258,7 +258,7 @@ Initializing your local virtualenv:
 
 Managing the docker image of airflow-breeze:
 
--r, --do-not-rebuild-image
+-i, --do-not-rebuild-image
         Don't rebuild the airflow docker image locally
 
 -u, --upload-image
@@ -330,7 +330,7 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:KP:f:rudcgGiR:B:t:x: \
+    -o hp:w:k:KP:f:iudcgGvR:B:t:x: \
     -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,do-not-rebuild-image,\
 upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,\
 initialize-local-virtualenv,repository:,branch:,test-target:,execute: \
@@ -362,7 +362,7 @@ do
       AIRFLOW_BREEZE_PYTHON_VERSION="${2}"; shift 2 ;;
     -f|--forward-port)
       DOCKER_PORT_ARG="-p 127.0.0.1:${2}:8080"; shift 2 ;;
-    -r|--do-not-rebuild-image)
+    -i|--do-not-rebuild-image)
       REBUILD=false; shift ;;
     -u|--upload-image)
       UPLOAD_IMAGE=true
@@ -392,7 +392,7 @@ do
       RECONFIGURE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
     -G|--recreate-gcp-project)
       RECREATE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
-    -i|--initialize-local-virtualenv)
+    -v|--initialize-local-virtualenv)
       INITIALIZE_LOCAL_VIRTUALENV=true; RUN_DOCKER=false; shift ;;
     -R|--repository)
       AIRFLOW_REPOSITORY="${2}"; shift 2 ;;

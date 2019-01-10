@@ -244,17 +244,17 @@ Reconfiguring existing project:
 -g, --reconfigure-gcp-project
         Reconfigures the project already present in the workspace.
         It adds all new variables in case they were added, creates new service accounts
-        and updates to latest version of the notification cloud functions if they are used.
+        and updates to latest version of the used notification cloud functions.
 
 -G, --recreate-gcp-project
-        Reconfigures the project already present in the workspace but recreates
-        all sensitive data - it creates new service accounts, generates new
-        service account keys, regenerates passwords, recreates bucket. It also performs
-        all actions done by reconfigure project.
+        Recreates the project already present in the workspace. DELETES AND RECREATES
+        all sensitive resources. DELETES AND RECREATES buckets with result of builds
+        DELETES AND RECREATES service account keys, DELETES AND GENERATES encrypted
+        passwords. Then it performs all actions as in reconfigure project.
 
 Initializing your local virtualenv:
 
--i, --initialize-local-virtualenv
+-v, --initialize-local-virtualenv
         Initializes locally created virtualenv installing all dependencies of Airflow.
         This local virtualenv can be used to aid autocompletion and IDE support as
         well as run unit tests directly from the IDE. You need to have virtualenv
@@ -262,7 +262,7 @@ Initializing your local virtualenv:
 
 Managing the docker image of airflow-breeze:
 
--r, --do-not-rebuild-image
+-i, --do-not-rebuild-image
         Don't rebuild the airflow docker image locally
 
 -u, --upload-image
@@ -300,5 +300,4 @@ Optional arbitrary command execution (mutually exclusive with running tests):
 -x, --execute <COMMAND>
         Run the specified command. It is run via 'bash -c' so if you want to run command
         with parameters they must be all passed as one COMMAND (enclosed with ' or ".
-
 ```

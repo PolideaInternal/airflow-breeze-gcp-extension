@@ -9,9 +9,11 @@ from python and most of the interesting ones for us are in
 If you are working within the container, you may use the following commands to
 run tests.
 
-`./run_unit_tests.sh tests.core:CoreTest -s --logging-level=DEBUG`
-`./run_unit_tests.sh tests.contrib.operators.test_dataproc_operator -s
---logging-level=DEBUG`
+```
+./run_unit_tests.sh tests.core:CoreTest -s --logging-level=DEBUG
+
+./run_unit_tests.sh tests.contrib.operators.test_dataproc_operator -s --logging-level=DEBUG
+```
 
 ## Configuring your IDE (IntelliJ)
 

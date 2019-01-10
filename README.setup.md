@@ -209,10 +209,9 @@ It will performs the following tasks:
 
 ## Recreating the GCP project
 
-Sometimes it is useful to 
+Sometimes it is useful to delete all sensitive resources and project history.
 
-If you want to recreate your project from the scratch, you can always recreate it 
-by running `./run_environment.sh --recreate-gcp-project`. It will 
+You can do it by `./run_environment.sh --recreate-gcp-project`. It will 
 perform the same tasks as reconfiguring the project plus:
 
 * re-create encryption keys
@@ -288,12 +287,14 @@ in sync.
 This chapter explains what buckets are created in Google Cloud Storage for the 
 test environment.
 
-There are two buckets created for the GCP projects. By default they have names
-following your project id (`<PROJECT_ID>-builds`, `<PROJECT_ID>-tests`). You can 
-change the default prefixes however during bootstrapping process.
+There are several buckets created for the GCP projects. By default they have names
+following your project id (`<PROJECT_ID>-builds`, `<PROJECT_ID>-tests-<TEST_SUITE>`). 
+<TEST_SUITE> is one of the python versions used [ python27, python35, python36 ].
+You can change the default suffixes during bootstrapping or reconfiguration.
 
 The `builds` bucket stores all build artifacts, it's permissions are set as
 read for everyone, which means that you can share the links to files stored
 there with anyone.
 
-The `tests` bucket is used to perform GCS related tests.
+The `tests` buckets are used to perform GCS related tests - there is separate bucket
+for different python environments used.

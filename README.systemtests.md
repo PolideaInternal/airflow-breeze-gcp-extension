@@ -183,6 +183,46 @@ Using Airflow Breeze you can also run full Airflow including wbserver and schedu
 -   It may take up to 5 minutes for the scheduler to notice the new DAG. Restart
     the scheduler manually to speed this up.
 
+
+## Debugging System Tests using remote Debugger
+
+When you run example DAGs - even if you run them using UnitTests from within IDE, they 
+are run in a separate process / python interpreter - using `airflow` command. This makes
+it a little harder to use with IDE built-in debuggers. Similarly if you run your tests 
+in container environment the process is run in the container, sources are located in 
+`/home/airflow/` directory and it's not obvious how to debug it easily with debugger.
+ 
+Fortunately for IntelliJ/PyCharm it is fairly easy using remote debugging feature (note 
+that remote debugging is only available in paid versions of IntelliJ/PyCharm).
+
+You can read [general description about remote debugging](https://www.jetbrains.com/help/pycharm/remote-debugging-with-product.html)
+
+You can setup your remote debug session as follows:
+
+![Remote debugging](images/remote_debugging.png)
+
+## Debugging System test in container environment
+
+If you run your process within container environment you use the same remote debugging
+but you also have to remember about configuring source code mapping
+in remote debugging configuration:
+
+![Source code mapping](images/source_code_mapping.png)
+
+The mapping should map local path of your project in Host with 
+`/home/airflow/airflow` directory in remote docker environment. Then 
+Run `Debug` command of the remote debugger and see that it prints the exact 
+import and settrace lines of code that you need to copy&paste in your code where you
+want to start debugging.
+
+Also in case of running in container make sure to use IP address of your host
+machine rather than `localhost`. On Mac OS docker is run in a 
+separate virtual machine therefore you need to specify the host IP address to connect to:
+
+![Source code mapping](images/remote_debugging_code.png)
+
+This way you can debug code run via `airflow test`
+
 # Additional System test topics
 
 ## Running System Tests via Google Cloud Build (Continuous Integration)
