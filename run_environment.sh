@@ -548,7 +548,7 @@ if [[ ! -d "${AIRFLOW_BREEZE_AIRFLOW_DIR}" ]]; then
   echo
   echo
   echo "Enable Google Cloud Build Application in both projects:"
-  echp
+  echo
   echo " * fork of Apache's https://github.com/apache/airflow"
   echo " * fork of Airflow Breeze http://github.com/PolideaInternal/airflow-breeze"
   echo
