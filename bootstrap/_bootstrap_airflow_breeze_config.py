@@ -354,7 +354,7 @@ def create_google_cloud_repository(directory, repo_name):
     logged_call(["gcloud", "source", "repos", "create", repo_name,
                  '--project={}'.format(project_id)])
     logged_call(['git', 'init'], cwd=directory)
-    logged_call(['git', 'remote', 'add', 'google',
+    logged_call(['git', 'remote', 'add', 'origin',
                  'https://source.developers.google.com/p/{}/r/{}'.format(
                      project_id, repo_name)], cwd=directory)
 
@@ -365,7 +365,7 @@ def commit_and_push_google_cloud_repository(directory, initial=True):
                  'Initial commit of bootstrapped repository' if initial
                  else 'Updating service keys and configuration'],
                 cwd=directory)
-    logged_call(['git', 'push', '--set-upstream', 'google', 'master'], cwd=directory)
+    logged_call(['git', 'push', '--set-upstream', 'origin', 'master'], cwd=directory)
 
 
 def create_bucket(bucket_name, recreate_bucket, read_all,
