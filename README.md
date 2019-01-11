@@ -1,5 +1,3 @@
-# Airflow Breeze
-
 ![Airflow Breeze Logo](images/AirflowBreeze_logo.png)
 
 With Airflow Breeze It's a breeze to start developing Airflow operators for Google Cloud 
