@@ -184,6 +184,19 @@ for the project. In case project is recreated, all team members will have to pul
 the pushed version of `airflow-breeze-config` in order to be able to authenticate with 
 service accounts of the project.
 
+
+## Comparing with bootstrap configuration
+
+Whenever you run `./run_environment.sh` automatically bootstrap configuration for new
+projects is compared with your current configuration and any differences found will
+be reported. This is useful to make sure that all the changes done in the configuration
+have also been reflected in the bootstrap configuration or the other way round -
+if there are changes in the bootstrap configuration they should be reflected in 
+workspace configuration.
+
+You can always run the comparision without entering the environment by adding
+`--coompare-bootstrap-config` flag.
+
 ## Setting up Travis CI for unit tests
 
 You should also setup Travis CI for running all unit tests automatically as described in

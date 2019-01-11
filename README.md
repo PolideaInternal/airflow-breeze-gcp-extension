@@ -272,6 +272,10 @@ Reconfiguring existing project:
         DELETES AND RECREATES service account keys, DELETES AND GENERATES encrypted
         passwords. Then it performs all actions as in reconfigure project.
 
+-z, --compare-bootstrap-config
+        Compares bootstrap configuration with current workspace configuration. It will
+        report differences found and suggestions how those two should be aligned.
+
 Initializing your local virtualenv:
 
 -e, --initialize-local-virtualenv

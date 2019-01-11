@@ -73,6 +73,9 @@ RECONFIGURE_GCP_PROJECT=false
 #################### Recreate the GCP project
 RECREATE_GCP_PROJECT=false
 
+#################### Compares the boot
+COMPARE_BOOTSTRAP_CONFIG=false
+
 #################### Helper functions
 
 # Helper function for building the docker image locally.
@@ -261,6 +264,10 @@ Reconfiguring existing project:
         DELETES AND RECREATES service account keys, DELETES AND GENERATES encrypted
         passwords. Then it performs all actions as in reconfigure project.
 
+-z, --compare-bootstrap-config
+        Compares bootstrap configuration with current workspace configuration. It will
+        report differences found and suggestions how those two should be aligned.
+
 Initializing your local virtualenv:
 
 -e, --initialize-local-virtualenv
@@ -343,10 +350,10 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:KP:f:iudcgGeR:B:t:x: \
+    -o hp:w:k:KP:f:iudcgGzeR:B:t:x: \
     -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,do-not-rebuild-image,\
 upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,\
-initialize-local-virtualenv,repository:,branch:,test-target:,execute: \
+compare-bootstrap-config,initialize-local-virtualenv,repository:,branch:,test-target:,execute: \
     --name "$CMDNAME" -- "$@")
 
 if [[ $? -ne 0 ]]
@@ -405,6 +412,8 @@ do
       RECONFIGURE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
     -G|--recreate-gcp-project)
       RECREATE_GCP_PROJECT=true; RUN_DOCKER=false; shift ;;
+    -z|--compare-bootstrap-config)
+      COMPARE_BOOTSTRAP_CONFIG=true; RUN_DOCKER=false; shift ;;
     -e|--initialize-local-virtualenv)
       INITIALIZE_LOCAL_VIRTUALENV=true; RUN_DOCKER=false; shift ;;
     -R|--repository)
@@ -628,6 +637,11 @@ elif [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
        --workspace ${AIRFLOW_BREEZE_WORKSPACE_DIR}  )
     decrypt_all_files
     decrypt_all_variables
+elif [[ ${COMPARE_BOOTSTRAP_CONFIG} == "true" ]]; then
+ (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" &&
+     source "${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env" &&
+     set +a &&
+     ${MY_DIR}/compare_workspace_with_bootstrap.py)
 fi
 if [[ ${INITIALIZE_LOCAL_VIRTUALENV} == "true" ]]; then
    # Check if we are in virtualenv
