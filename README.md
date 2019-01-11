@@ -1,5 +1,7 @@
 # Airflow Breeze
 
+![Airflow Breeze Logo](images/AirflowBreeze_logo.png)
+
 With Airflow Breeze It's a breeze to start developing Airflow operators for Google Cloud 
 Platform operators. It should take lass than 30 minutes to have you set you up with an
 environment where you are ready to develop your code and test it against a real
