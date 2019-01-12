@@ -46,7 +46,7 @@ You can read more about architecture of the environment in
     System Tests interacting with Google Cloud Platform.
 -   Manage common configuration of the project (per GCP project-id) which is shared
     with your team via airflow-breeze-config repository - stored in your project's Google
-    Source Repositories.
+    Source Repositories and locally checked out in `<WORKSPACE>/config` directory.
 -   Setup automated builds in Google Cloud Build to verify your builds
     automatically and run all relevant unit and System Tests as part of Pull Request 
     process of your GitHub project
@@ -165,8 +165,8 @@ choose 2.7, 3.5 or 3.6 - with 3.6 being default)
 ## Changing project
 
 You can change project in already created workspace. You will be asked for confirmation
-as this is a destructive operation - local `airflow-breeze-config` in the workspace
-will be deleted and replaced with project's specific configuration.
+as this is a destructive operation - local `config` in the workspace
+will be deleted and replaced with new project's specific configuration.
 
 ```
 ./run_environment.sh --project <GCP_PROJECT_ID>
@@ -244,10 +244,10 @@ Flags:
 
 -k, --key-name <KEY_NAME>
         Name of the GCP service account key to use by default. Keys are stored in
-        '<WORKSPACE>/airflow-breeze-config/key' folder. Cached between runs. If not
+        '<WORKSPACE>/config/key' folder. Cached between runs. If not
         specified, you need to confirm that you want to enter the environment without
         the key. You can also switch keys manually after entering the environment
-        via 'gcloud auth activate-service-account /root/airflow-breeze-config/keys/<KEY>'.
+        via 'gcloud auth activate-service-account /root/config/keys/<KEY>'.
 
 -K, --key-list
         List all service keys that can be used with --key-name flag.

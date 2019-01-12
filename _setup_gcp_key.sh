@@ -24,8 +24,8 @@
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 export AIRFLOW_HOME=${AIRFLOW_HOME:=/airflow}
-export AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=${HOME}/airflow-breeze-config}
-export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
+export GCP_CONFIG_DIR=${GCP_CONFIG_DIR:=${HOME}/config}
+export GCP_SERVICE_ACCOUNT_KEY_DIR=${GCP_CONFIG_DIR}/keys
 export GCP_SERVICE_ACCOUNT_KEY_NAME=${1}
 export GCP_PROJECT_ID=${GCP_PROJECT_ID:="no-project-set-please-set-it"}
 

@@ -34,11 +34,11 @@ set -a
 # dependency.
 export SLUGIFY_USES_TEXT_UNIDECODE=yes
 
-AIRFLOW_BREEZE_CONFIG_DIR="${HOME}/airflow-breeze-config"
-if [[ -f ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env ]]; then
-  echo "Sourcing variables from ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env"
+GCP_CONFIG_DIR="${HOME}/config"
+if [[ -f ${GCP_CONFIG_DIR}/variables.env ]]; then
+  echo "Sourcing variables from ${GCP_CONFIG_DIR}/variables.env"
   set -x
-  source ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env
+  source ${GCP_CONFIG_DIR}/variables.env
   set +x
 fi
 
@@ -79,8 +79,8 @@ alias set_gcp_key=". /airflow/_setup_gcp_key.sh"
 . ${MY_DIR}/_setup_gcp_key.sh "${GCP_SERVICE_ACCOUNT_KEY_NAME}"
 
 export AIRFLOW_HOME=${AIRFLOW_HOME:=/airflow}
-export AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=${HOME}/airflow-breeze-config}
-export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
+export GCP_CONFIG_DIR=${GCP_CONFIG_DIR:=${HOME}/onfig}
+export GCP_SERVICE_ACCOUNT_KEY_DIR=${GCP_CONFIG_DIR}/keys
 
 export AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
 

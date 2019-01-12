@@ -26,14 +26,14 @@ export AIRFLOW_HOME="${AIRFLOW_HOME:=/airflow}"
 export AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
 export AIRFLOW_OUTPUT="${AIRFLOW_SOURCES}/output"
 export BUILD_ID="${BUILD_ID:=build}"
-export AIRFLOW_BREEZE_CONFIG_DIR="${HOME}/airflow-breeze-config"
+export GCP_CONFIG_DIR="${HOME}/config"
 export AIRFLOW_BREEZE_TEST_SUITES=${AIRFLOW_BREEZE_TEST_SUITES:=""}
 
 for AIRFLOW_BREEZE_TEST_SUITE in ${AIRFLOW_BREEZE_TEST_SUITES}; do
     export AIRFLOW_BREEZE_TEST_SUITE
     # Re-source variables for test suite
     set -a
-    source ${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env
+    source ${GCP_CONFIG_DIR}/variables.env
     set +a
     echo "Deleting CloudSQL database for test suite ${AIRFLOW_BREEZE_TEST_SUITE}"
     python ${AIRFLOW_SOURCES}/tests/contrib/operators/test_gcp_sql_operator.py --action=delete

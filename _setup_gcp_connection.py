@@ -30,7 +30,7 @@ PROJECT_EXTRA = 'extra__google_cloud_platform__project'
 key_file_name = os.environ.get('GCP_SERVICE_ACCOUNT_KEY_NAME')
 home_dir = os.path.expanduser('~')
 full_key_path = os.path.join(home_dir,
-                             "airflow-breeze-config",
+                             "config",
                              "keys",
                              key_file_name)
 if not os.path.isfile(full_key_path):

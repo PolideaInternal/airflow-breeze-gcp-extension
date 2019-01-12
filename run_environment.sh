@@ -146,12 +146,12 @@ run_container () {
 docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
  -v ${AIRFLOW_BREEZE_AIRFLOW_DIR}:/workspace \
  -v ${AIRFLOW_BREEZE_OUTPUT_DIR}:/airflow/output \
- -v ${AIRFLOW_BREEZE_CONFIG_DIR}:/root/airflow-breeze-config \
- --env-file=${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env \
+ -v ${GCP_CONFIG_DIR}:/root/config \
+ --env-file=${GCP_CONFIG_DIR}/decrypted_variables.env \
  -e PYTHON_VERSION=${AIRFLOW_BREEZE_PYTHON_VERSION} \
  -e AIRFLOW_BREEZE_TEST_SUITE=${AIRFLOW_BREEZE_TEST_SUITE} \
  -e AIRFLOW_BREEZE_SHORT_SHA=${AIRFLOW_BREEZE_SHORT_SHA} \
- -e AIRFLOW_BREEZE_CONFIG_DIR=/root/airflow-breeze-config \
+ -e GCP_CONFIG_DIR=/root/config \
  -e GCP_SERVICE_ACCOUNT_KEY_NAME=${AIRFLOW_BREEZE_KEY_NAME} \
  -v ${AIRFLOW_BREEZE_BASH_HISTORY_FILE}:/root/.bash_history \
   ${DOCKER_PORT_ARG} ${IMAGE_NAME} /bin/bash -c \"/airflow/_init.sh ${POST_INIT_ARG}\"
@@ -209,9 +209,9 @@ decrypt_all_variables() {
     echo
     echo "Decrypting encrypted variables"
     echo
-    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+    (set -a && source "${GCP_CONFIG_DIR}/variables.env" && set +a && \
      python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
-          ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env)
+          ${GCP_CONFIG_DIR}/decrypted_variables.env)
     echo
     echo "Variables decrypted! "
     echo
@@ -236,10 +236,10 @@ Flags:
 
 -k, --key-name <KEY_NAME>
         Name of the GCP service account key to use by default. Keys are stored in
-        '<WORKSPACE>/airflow-breeze-config/key' folder. Cached between runs. If not
+        '<WORKSPACE>/config/key' folder. Cached between runs. If not
         specified, you need to confirm that you want to enter the environment without
         the key. You can also switch keys manually after entering the environment
-        via 'gcloud auth activate-service-account /root/airflow-breeze-config/keys/<KEY>'.
+        via 'gcloud auth activate-service-account /root/config/keys/<KEY>'.
 
 -K, --key-list
         List all service keys that can be used with --key-name flag.
@@ -455,8 +455,8 @@ echo ${AIRFLOW_BREEZE_WORKSPACE_NAME} > ${AIRFLOW_BREEZE_WORKSPACE_FILE}
 
 #################### Directories #######################################################
 
-export AIRFLOW_BREEZE_CONFIG_DIR="${AIRFLOW_BREEZE_WORKSPACE_DIR}/airflow-breeze-config"
-export AIRFLOW_BREEZE_KEYS_DIR="${AIRFLOW_BREEZE_CONFIG_DIR}/keys"
+export GCP_CONFIG_DIR="${AIRFLOW_BREEZE_WORKSPACE_DIR}/config"
+export AIRFLOW_BREEZE_KEYS_DIR="${GCP_CONFIG_DIR}/keys"
 export AIRFLOW_BREEZE_AIRFLOW_DIR=${AIRFLOW_BREEZE_WORKSPACE_DIR}/airflow
 export AIRFLOW_BREEZE_OUTPUT_DIR=${AIRFLOW_BREEZE_WORKSPACE_DIR}/output
 
@@ -530,7 +530,7 @@ if [[ -f ${AIRFLOW_BREEZE_PROJECT_ID_FILE} ]]; then
         echo "You are switching to project ${AIRFLOW_BREEZE_PROJECT_ID}. "
         echo
         ${MY_DIR}/confirm "This will remove config dir and re-download it."
-        rm -rvf  "${AIRFLOW_BREEZE_CONFIG_DIR}"
+        rm -rvf  "${GCP_CONFIG_DIR}"
         rm -v ${AIRFLOW_BREEZE_PROJECT_ID_FILE}
     fi
 fi
@@ -587,19 +587,20 @@ if [[ ! -d "${AIRFLOW_BREEZE_AIRFLOW_DIR}" ]]; then
 fi
 
 ################## Check out config dir #############################################
-if [[ ! -d ${AIRFLOW_BREEZE_CONFIG_DIR} ]]; then
+if [[ ! -d ${GCP_CONFIG_DIR} ]]; then
   echo
-  echo "Automatically checking out airflow-breeze-config directory from your Google Cloud Repository:"
+  echo "Automatically checking out airflow-breeze-config repo from your Google Cloud "
+  echo "Repository in ${GCP_CONFIG_DIR} folder."
   echo
-  mkdir -pv "${AIRFLOW_BREEZE_CONFIG_DIR}"
+  mkdir -pv "${GCP_CONFIG_DIR}"
   gcloud source repos --project=${AIRFLOW_BREEZE_PROJECT_ID} clone airflow-breeze-config \
-    "${AIRFLOW_BREEZE_CONFIG_DIR}" || (\
+    "${GCP_CONFIG_DIR}" || (\
      echo && echo "Bootstrapping airflow-breeze-config as it was not found in Google Cloud Repository" && echo && \
      python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
        --workspace ${AIRFLOW_BREEZE_WORKSPACE_DIR} )
 
-     CLOUDBUILD_FILES=$(cd "${AIRFLOW_BREEZE_CONFIG_DIR}"; find . -name cloudbuild.yaml)
+     CLOUDBUILD_FILES=$(cd "${GCP_CONFIG_DIR}"; find . -name cloudbuild.yaml)
      if [[ ${CLOUDBUILD_FILES} != "" ]]; then
          echo
          echo "In order to enable notifications, please setup trigger(s) for Cloud Build"
@@ -622,7 +623,7 @@ check_encrypt_decrypt_permission
 
 if [[ ${RECREATE_GCP_PROJECT} == "true" ]]; then
     echo && echo "Reconfiguring project in GCP" && echo &&
-    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+    (set -a && source "${GCP_CONFIG_DIR}/variables.env" && set +a && \
         python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
        --workspace ${AIRFLOW_BREEZE_WORKSPACE_DIR}   \
@@ -631,15 +632,15 @@ if [[ ${RECREATE_GCP_PROJECT} == "true" ]]; then
     decrypt_all_variables
 elif [[ ${RECONFIGURE_GCP_PROJECT} == "true" ]]; then
     echo && echo "Reconfiguring project in GCP with new secrets and services" && echo &&
-    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" && set +a && \
+    (set -a && source "${GCP_CONFIG_DIR}/variables.env" && set +a && \
         python3 ${MY_DIR}/bootstrap/_bootstrap_airflow_breeze_config.py \
        --gcp-project-id ${AIRFLOW_BREEZE_PROJECT_ID} \
        --workspace ${AIRFLOW_BREEZE_WORKSPACE_DIR}  )
     decrypt_all_files
     decrypt_all_variables
 elif [[ ${COMPARE_BOOTSTRAP_CONFIG} == "true" ]]; then
- (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" &&
-     source "${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env" &&
+ (set -a && source "${GCP_CONFIG_DIR}/variables.env" &&
+     source "${GCP_CONFIG_DIR}/decrypted_variables.env" &&
      set +a &&
      ${MY_DIR}/compare_workspace_with_bootstrap.py)
 fi
@@ -759,7 +760,7 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo
     echo "Decrypted variables (only visible when you run local environment!):"
     echo
-    cat ${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env
+    cat ${GCP_CONFIG_DIR}/decrypted_variables.env
     echo
 
     echo "*************************************************************************"
@@ -774,7 +775,7 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo
     echo " AIRFLOW_SOURCE_DIR            = ${AIRFLOW_BREEZE_AIRFLOW_DIR}"
     echo " AIRFLOW_BREEZE_KEYS_DIR       = ${AIRFLOW_BREEZE_KEYS_DIR}"
-    echo " AIRFLOW_BREEZE_CONFIG_DIR     = ${AIRFLOW_BREEZE_CONFIG_DIR}"
+    echo " GCP_CONFIG_DIR     = ${GCP_CONFIG_DIR}"
     echo " AIRFLOW_BREEZE_OUTPUT_DIR     = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
     echo " AIRFLOW_BREEZE_TEST_SUITE     = ${AIRFLOW_BREEZE_TEST_SUITE}"
     echo " AIRFLOW_BREEZE_SHORT_SHA      = ${AIRFLOW_BREEZE_SHORT_SHA}"
@@ -791,8 +792,8 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo " Comparing your current configuration with bootstrap configuration"
     echo
     set +e
-    (set -a && source "${AIRFLOW_BREEZE_CONFIG_DIR}/variables.env" &&
-     source "${AIRFLOW_BREEZE_CONFIG_DIR}/decrypted_variables.env" &&
+    (set -a && source "${GCP_CONFIG_DIR}/variables.env" &&
+     source "${GCP_CONFIG_DIR}/decrypted_variables.env" &&
      set +a &&
      ${MY_DIR}/compare_workspace_with_bootstrap.py)
     RES=$?

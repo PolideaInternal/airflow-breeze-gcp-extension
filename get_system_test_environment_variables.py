@@ -58,7 +58,7 @@ def process_environment_variables():
                             " The file {} is missing.".format(workspace_file))
         raise e
     workspace_dir = os.path.join(current_file_dir, "workspaces", workspace)
-    airflow_config_dir = os.path.join(workspace_dir, 'airflow-breeze-config')
+    airflow_config_dir = os.path.join(workspace_dir, 'config')
     airflow_keys_dir = os.path.join(airflow_config_dir, 'keys')
     project_file = os.path.join(workspace_dir, '.project_id')
     try:
@@ -75,7 +75,7 @@ def process_environment_variables():
     if not os.path.isdir(airflow_keys_dir):
         print("The {} is not keys dir.".format(airflow_keys_dir))
         exit(1)
-    os.environ['AIRFLOW_BREEZE_CONFIG_DIR'] = airflow_config_dir
+    os.environ['GCP_CONFIG_DIR'] = airflow_config_dir
     os.environ['AIRFLOW_BREEZE_TEST_SUITE'] = lowercase_user_and_python_version
     os.environ['AIRFLOW_BREEZE_SHORT_SHA'] = last_random
     variable_env_file = os.path.join(airflow_config_dir, 'variables.env')

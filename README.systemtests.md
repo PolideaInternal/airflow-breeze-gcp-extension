@@ -22,7 +22,7 @@ are symbolic links and the linked DAGS are in your sources which are mounted fro
 the local host environment - this way you can modify the DAGs locally and they will be
 immediately available to run. You can choose which dags you want to link symbolically 
 via `AIRFLOW_BREEZE_DAGS_TO_TEST` environment variable in the `variables.env` in 
-`airflow-breeze-config` folder in your workspace.
+`config` folder in your workspace.
 
 Most of the DAGs you work on are in `/workspace/airflow/example_dags` or
 `/workspace/airflow/contrib/example_dags/` folder.
@@ -58,7 +58,7 @@ with `example_gcp_compute` dag id.
 After the test is done, the tearDown deletes the resources.
 
 The System Tests have per-project configuration (environment variables)
-Configuration for the tests is stored in  `airflow-breeze-config` directory 
+Configuration for the tests is stored in  `config` directory 
 in `variables.env`.
 
 The System Tests are skipped by default outside of the container environment when

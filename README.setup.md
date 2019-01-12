@@ -51,7 +51,7 @@ Running the environment for the first time performs the following actions:
   is checked out in `workspaces/<WORKSPACE>/airflow` directory
 
 * In case project id is already configured for Airflow Breeze by your team, it checks-out
-  project's configuration to <WORKSPACE>/airflow-breeze-config directory. More info about
+  project's configuration to `<WORKSPACE>/config` directory. More info about
   configuration can be found in the [Configuration variables](#configuration-variables)
 
 * In case project is not configured yet, it bootstraps the configuration, ask
@@ -132,10 +132,10 @@ you can share it with others.
 ![Summary page](images/summary_page.png)
 
 You can also modify the code of slack notification function and deploy it manually.
-The code is in your workspace's `airflow-breeze-config/notifications/slack`. In order
+The code is in your workspace's `config/notifications/slack`. In order
 to modify the code, you should run `./deploy_function.bash` first - the function will
 be deployed and the code to the function will be symbolically linked in the 
-`airflow-breeze-config/notifications/slack` directory from the main
+`config/notifications/slack` directory from the main
 airflow-breeze/notifications/slack directory. You can iterate locally by modifying 
 these sources and running `./deploy-function.bash` but in order to make the change 
 permanent you have to commit it to your fork of `airflow-breeze`.
@@ -181,7 +181,7 @@ perform the same tasks as reconfiguring the project plus:
 You  can use it at any time when you want to make sure that some previously
 used credentials are not misused as it will use completely new set of credentials
 for the project. In case project is recreated, all team members will have to pull 
-the pushed version of `airflow-breeze-config` in order to be able to authenticate with 
+the new version of `airflow-breeze-config` in order to be able to authenticate with 
 service accounts of the project.
 
 
@@ -219,17 +219,17 @@ latest dependencies.
 
 ## Configuration variables
 
-This chapter explains what is inside `airflow-breeze-config` folder. The folder 
+This chapter explains what is inside `config` folder. The folder 
 is placed in your workspace is used to share configuration 
 of your project between your team members. You should pull the configuration directory 
 periodically and push your changes in order to exchange configuration with your 
 team members.
 
-The `airflow-breeze-config` directory contains environment variables in variables.env 
+The `config` directory contains environment variables in variables.env 
 file. This .env file is sourced when you enter the environment, 
 when you run System Tests via IDE or when you run System Tests in Google Cloud Build.
 
-Additionally the `airflow-breeze-config` directory contains:
+Additionally the `config` directory contains:
 
 * keys directory - where service account keys (encrypted) are kept in the repository
   and where they are decrypted locally
@@ -246,7 +246,7 @@ Additionally the `airflow-breeze-config` directory contains:
   file (and sourced so that they are available in the container environment). This 
   file is git-ignored so that it won't be accidentally checked in to the repository.
 
-Note that you should commit and push/pull changes to the `airflow-breeze-config` 
+Note that you should commit and push/pull changes to the `airflow-breeze-config` repo
 additionally to changes in the main `airflow` project. This way you can share
 new/changed configuration with your team. Note that there are also configuration
 templates in `bootstrap` folder (prefixed with `TEMPLATE-`) and whenever you enter

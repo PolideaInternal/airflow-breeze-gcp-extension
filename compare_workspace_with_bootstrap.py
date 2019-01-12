@@ -50,7 +50,7 @@ def get_current_workspace_info():
                             " The file {} is missing.".format(workspace_file))
         raise e
     workspace_dir = os.path.join(current_file_dir, "workspaces", workspace)
-    airflow_config_dir = os.path.join(workspace_dir, 'airflow-breeze-config')
+    airflow_config_dir = os.path.join(workspace_dir, 'config')
     airflow_keys_dir = os.path.join(airflow_config_dir, 'keys')
     project_file = os.path.join(workspace_dir, '.project_id')
     try:
@@ -108,7 +108,7 @@ def compare_variable_keys(variable_file, bootstrap_variable_file):
         set_confirm()
         print("!" * 80)
         print()
-        print("There are new keys added in your airflow-breeze-config file {}".format(
+        print("There are new keys added in your config file {}".format(
             variable_file))
         print()
         for key in new_current_keys:

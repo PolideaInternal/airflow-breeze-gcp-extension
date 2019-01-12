@@ -22,8 +22,8 @@ export AIRFLOW_BREEZE_TEST_SUITE="${AIRFLOW_BREEZE_TEST_SUITE:=docs}"
 export BUILD_ID="${BUILD_ID:=build}"
 export GCP_PROJECT_ID=${GCP_PROJECT_ID:="wrong-project"}
 
-AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=${HOME}/airflow-breeze-config}
-export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR}/keys
+GCP_CONFIG_DIR=${GCP_CONFIG_DIR:=${HOME}/config}
+export GCP_SERVICE_ACCOUNT_KEY_DIR=${GCP_CONFIG_DIR}/keys
 
 # Create logs dir preemptively - if same directory is created in parallel in two
 # images, one of the newly created dirs might disappear - it's likely due to the way

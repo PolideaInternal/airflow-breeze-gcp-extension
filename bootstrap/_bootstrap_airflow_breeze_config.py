@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-"""Bootstraps an empty airflow-breeze-config project"""
+"""Bootstraps an empty config project"""
 import json
 import random
 import string
@@ -40,6 +40,7 @@ TEST_FILES_DIR = os.path.join(MY_DIR, "test-files")
 BUILD_LIFECYCLE_RULE_FILE = os.path.join(MY_DIR, "build_lifecycle_rule.json")
 
 CONFIG_REPO_NAME = "airflow-breeze-config"
+CONFIG_DIR_NAME = "config"
 HELLO_WORLD_REPO_NAME = "hello-world"
 
 TARGET_DIR = ''
@@ -57,7 +58,7 @@ VARIABLES = {}
 
 def get_config_dir(workspace_dir):
     global TARGET_DIR
-    TARGET_DIR = os.path.join(workspace_dir, CONFIG_REPO_NAME)
+    TARGET_DIR = os.path.join(workspace_dir, CONFIG_DIR_NAME)
 
 
 def assert_config_directory_does_not_exist():

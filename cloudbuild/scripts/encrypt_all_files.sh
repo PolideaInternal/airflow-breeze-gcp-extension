@@ -14,8 +14,8 @@
 set -euo pipefail
 
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-AIRFLOW_BREEZE_CONFIG_DIR=${AIRFLOW_BREEZE_CONFIG_DIR:=${HOME}/airflow-breeze-config}
-export GCP_SERVICE_ACCOUNT_KEY_DIR=${AIRFLOW_BREEZE_CONFIG_DIR/keys
+GCP_CONFIG_DIR=${GCP_CONFIG_DIR:=${HOME}/config}
+export GCP_SERVICE_ACCOUNT_KEY_DIR=${GCP_CONFIG_DIR/keys
 
 pushd ${GCP_SERVICE_ACCOUNT_KEY_DIR}
 for FILE in *.json *.pem;
