@@ -84,7 +84,7 @@ build_local () {
   echo "Building docker image '${IMAGE_NAME}'"
   docker build  \
     --build-arg AIRFLOW_REPO_URL=https://github.com/PolideaInternal/airflow.git \
-    --build-arg AIRFLOW_REPO_BRANCH=GCP_DOCUMENTATION_REVIEW \
+    --build-arg AIRFLOW_REPO_BRANCH=common_gcp_operator_fixes \
     . -t ${IMAGE_NAME}
   if [[ "${UPLOAD_IMAGE}" != "false" ]]; then
     echo

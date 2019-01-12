@@ -119,7 +119,7 @@ RUN source /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
 ENV SLUGIFY_USES_TEXT_UNIDECODE yes
 
 # Note. Increase this number to force rebuilding to the latest dependencies
-ENV REBUILD_AIRFLOW_BREEZE_VERSION=5
+ENV REBUILD_AIRFLOW_BREEZE_VERSION=6
 
 ARG AIRFLOW_REPO_URL=https://github.com/apache/airflow
 ARG AIRFLOW_REPO_BRANCH=master
