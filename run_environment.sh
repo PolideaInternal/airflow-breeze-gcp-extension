@@ -494,6 +494,19 @@ if [[ ${ALLOWED_PYTHON_VERSIONS} != *" ${AIRFLOW_BREEZE_PYTHON_VERSION} "* ]]; t
     exit 1
 fi
 
+#################### Migrate config directory #############################################
+
+if [[ -d "${AIRFLOW_BREEZE_WORKSPACE_DIR}/airflow-breeze-config" ]]; then
+    echo
+    echo "WARNING! Old structure of directory detected."
+    echo "Name of  directory 'airflow-breeze-config' has been changed to 'airflow-config'"
+    echo
+    echo "Start automatic migration"
+    mv "${AIRFLOW_BREEZE_WORKSPACE_DIR}/airflow-breeze-config" "${GCP_CONFIG_DIR}"
+    echo "Automatic migration was successful."
+    echo
+fi
+
 #################### Test suite generation ##########################################
 # First 6 characters of the ASCII-only user name + python version withstripped .
 
