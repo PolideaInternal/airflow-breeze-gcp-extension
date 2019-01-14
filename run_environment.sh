@@ -210,7 +210,7 @@ decrypt_all_variables() {
     echo "Decrypting encrypted variables"
     echo
     (set -a && source "${GCP_CONFIG_DIR}/variables.env" && set +a && \
-     python ${MY_DIR}/_decrypt_encrypted_variables.py ${AIRFLOW_BREEZE_PROJECT_ID} >\
+     bash ${MY_DIR}/_decrypt_encrypted_variables.sh ${AIRFLOW_BREEZE_PROJECT_ID} >\
           ${GCP_CONFIG_DIR}/decrypted_variables.env)
     echo
     echo "Variables decrypted! "

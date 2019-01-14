@@ -159,7 +159,7 @@ COPY _setup_gcp_key.sh /airflow/_setup_gcp_key.sh
 COPY _reset.sh /airflow/_reset.sh
 COPY _create_links.sh /airflow/_create_links.sh
 COPY _setup_gcp_connection.py /airflow/_setup_gcp_connection.py
-COPY _decrypt_encrypted_variables.py /airflow/_decrypt_encrypted_variables.py
+COPY _decrypt_encrypted_variables.sh /airflow/_decrypt_encrypted_variables.sh
 COPY _bash_aliases /root/.bash_aliases
 COPY _inputrc /root/.inputrc
 COPY cloudbuild /root/cloudbuild
