@@ -432,7 +432,7 @@ def read_manual_parameters(regenerate_passwords):
     read_parameter('BUILD_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
                    'artifacts are stored (bucket name: {}<SUFFIX>)'.format(project_id))
     read_parameter('TEST_BUCKET_SUFFIX', 'Suffix of the GCS bucket where build '
-                   'test files are stored (bucket name: {}<SUFFIX>-<TEST_SUITE>)'.format(project_id))
+                   'test files are stored (bucket name: {}<SUFFIX>-<PYTHON_VERSION>)'.format(project_id))
     read_parameter('AIRFLOW_BREEZE_GITHUB_ORGANIZATION',
                    'Your GitHub user/organization name')
     read_parameter('AIRFLOW_REPO_NAME',
@@ -500,7 +500,7 @@ def create_and_configure_buckets():
     gcp_cloudsql_service_account = "gcp-cloudsql-account@{}.iam.gserviceaccount.com". \
         format(project_id)
     for test_suite in TEST_SUITES:
-        test_bucket_full_name = test_bucket + "-" + test_suite
+        test_bucket_full_name = test_bucket + "-" + test_suite[-2:]
         create_bucket(test_bucket_full_name,
                       recreate_bucket=args.recreate_project, read_all=False,
                       files_dir=TEST_FILES_DIR)
