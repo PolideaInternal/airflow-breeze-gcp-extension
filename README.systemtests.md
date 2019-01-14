@@ -356,10 +356,19 @@ The Postgres airflow database can be created using those commands:
   ```
   createuser root
   createdb airflow/airflow.db
+  airflow initdb
   ```
 
-When using container environment, by default all tests are run using LocalExecutor and 
-Postrgres database is used as metadata database.
+In case you need to recreate the database you can run:
+
+  ```
+  dropdb airflow/airflow.db
+  createdb airflow/airflow.db
+  airflow initdb
+  ```
+
+When using container environment, all tests are run using LocalExecutor and 
+Postgres database is used as metadata database.
 
 ## Writing your own System tests
 

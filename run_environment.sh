@@ -788,7 +788,7 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo
     echo " AIRFLOW_SOURCE_DIR            = ${AIRFLOW_BREEZE_AIRFLOW_DIR}"
     echo " AIRFLOW_BREEZE_KEYS_DIR       = ${AIRFLOW_BREEZE_KEYS_DIR}"
-    echo " GCP_CONFIG_DIR     = ${GCP_CONFIG_DIR}"
+    echo " GCP_CONFIG_DIR                = ${GCP_CONFIG_DIR}"
     echo " AIRFLOW_BREEZE_OUTPUT_DIR     = ${AIRFLOW_BREEZE_OUTPUT_DIR}"
     echo " AIRFLOW_BREEZE_TEST_SUITE     = ${AIRFLOW_BREEZE_TEST_SUITE}"
     echo " AIRFLOW_BREEZE_SHORT_SHA      = ${AIRFLOW_BREEZE_SHORT_SHA}"
