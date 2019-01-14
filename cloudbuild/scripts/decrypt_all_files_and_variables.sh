@@ -32,7 +32,7 @@ export LOG_OUTPUT_DIR=${AIRFLOW_OUTPUT}/${BUILD_ID}/logs/
 mkdir -pv ${LOG_OUTPUT_DIR}
 
 echo "Decrypting variables"
-python ${AIRFLOW_HOME}/_decrypt_encrypted_variables.py ${GCP_PROJECT_ID} \
+bash ${AIRFLOW_HOME}/_decrypt_encrypted_variables.sh ${GCP_PROJECT_ID} \
    > ${AIRFLOW_SOURCES}/decrypted_variables.env
 echo "Decrypted variables. Number of variables decrypted: "\
      "$(wc -l ${AIRFLOW_SOURCES}/decrypted_variables.env)"
