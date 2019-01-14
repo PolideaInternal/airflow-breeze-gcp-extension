@@ -1,4 +1,6 @@
-![Airflow Breeze Logo](images/AirflowBreeze_logo.png)
+<p align="center">
+  <img src="images/AirflowBreeze_logo.png" alt="Airflow Breeze Logo"/>
+</p>
 
 With Airflow Breeze It's a breeze to start developing Airflow operators for Google Cloud 
 Platform operators. It should take lass than 30 minutes to have you set you up with an
