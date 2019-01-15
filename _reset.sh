@@ -30,9 +30,9 @@ echo "Removing old DAG links"
 echo
 rm -rvf ${AIRFLOW_HOME}/dags/*
 echo
-echo "Removing old DAG links"
+echo "Removing old logs"
 echo
-rm -rvf ${AIRFLOW_HOME}/dags/*
+rm -rvf ${AIRFLOW_HOME}/logs/*
 echo
 echo "Resetting the database"
 echo
