@@ -25,7 +25,7 @@ steps:
           'AIRFLOW_REPO_URL=https://github.com/PolideaInternal/airflow.git',
           '--build-arg',
           'AIRFLOW_REPO_BRANCH=common_gcp_operator_fixes',
-          '--cache-from', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}',
+          '--cache-from', 'gcr.io/${PROJECT_ID}/airflow-breeze:master',
           '-t', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}',
           '.' ]
 images:
