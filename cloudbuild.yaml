@@ -17,7 +17,8 @@
 # under the License.
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'pull', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}']
+  entrypoint: '/bin/bash'
+  args: ['-c', 'docker pull gcr.io/${PROJECT_ID}/airflow-breeze:master || true']
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
           '--build-arg',
