@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -15,5 +16,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-alias set_gcp_key=". /airflow/_setup_gcp_key.sh"
-alias reset=". /airflow/_reset.sh"
+# cd, install from source, and setup postgres
+
+# Make sure all environment variables created below are exported
+# even if they are not explicitly exported (just in case)
+
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+export AIRFLOW_HOME=${AIRFLOW_HOME:=/airflow}
+export GCP_PROJECT_ID=${GCP_PROJECT_ID:="no-project-set-please-set-it"}
+
+echo "Removing old DAG links"
+echo
+rm -rvf ${AIRFLOW_HOME}/dags/*
+echo
+echo "Removing old DAG links"
+echo
+rm -rvf ${AIRFLOW_HOME}/dags/*
+echo
+echo "Resetting the database"
+echo
+airflow resetdb -y
+echo
+python ${MY_DIR}/_setup_gcp_connection.py "${GCP_PROJECT_ID}"
+echo
+source ${MY_DIR}/_create_links.sh
