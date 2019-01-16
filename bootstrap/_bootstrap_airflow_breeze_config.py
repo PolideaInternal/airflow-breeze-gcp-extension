@@ -163,7 +163,7 @@ def create_keyring_and_keys():
                                       '--filter={}'.format(KEYRING),
                                       '--format=json',
                                       '--project={}'.format(project_id),
-                                      '--location=global'])
+                                      '--location=global']).decode('utf-8')
     keyrings = json.loads(output)
     if keyrings and len(keyrings) > 0:
         print("The keyring is already created. Not creating it again!")
