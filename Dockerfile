@@ -159,6 +159,8 @@ RUN mkdir -pv /airflow/output
 RUN sed -i "s/^#listen_addresses.*/listen_addresses = '*'/" /etc/postgresql/10/main/postgresql.conf
 RUN sed -i "s/127.0.0.1\/32/0.0.0.0\/0/" /etc/postgresql/10/main/pg_hba.conf
 
+RUN pip install awscli botocore
+
 ## Add config and scripts
 COPY airflow.cfg /airflow/airflow.cfg
 COPY _init.sh /airflow/_init.sh

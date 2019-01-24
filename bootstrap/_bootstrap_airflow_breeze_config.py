@@ -151,6 +151,12 @@ SERVICE_ACCOUNTS = [
          roles=['roles/storage.admin'],
          services=['storage-api.googleapis.com', 'storage-component.googleapis.com'],
          appspot_service_account_impersonation=False),
+    dict(keyfile='gcp_gcs_transfer.json',
+         account_name='gcp-storage-transfer-account',
+         account_description='Google Cloud Storage Transfer account',
+         roles=['roles/editor'],
+         services=['storage-api.googleapis.com', 'storage-component.googleapis.com'],
+         appspot_service_account_impersonation=False),
 ]
 
 
@@ -451,6 +457,13 @@ def read_manual_parameters(regenerate_passwords):
         VARIABLES['SLACK_HOOK_ENCRYPTED'] = encrypt_value(VARIABLES.get('SLACK_HOOK'))
     else:
         IGNORE_SLACK = True
+    setup_aws_credentials = input("Setup AWS credentials ? (y/n) [n]")
+    if setup_aws_credentials == 'y' or setup_aws_credentials == 'Y':
+        read_parameter('AWS_ACCESS_KEY_ID', 'Access key ID:')
+        read_parameter('AWS_SECRET_ACCESS_KEY', 'Secret access key:')
+        read_parameter('AWS_DEFAULT_REGION', 'Default region:')
+        VARIABLES['AWS_ACCESS_KEY_ID_ENCRYPTED'] = encrypt_value(VARIABLES.get('AWS_ACCESS_KEY_ID'))
+        VARIABLES['AWS_SECRET_ACCESS_KEY_ENCRYPTED'] = encrypt_value(VARIABLES.get('AWS_SECRET_ACCESS_KEY'))
 
 
 def copy_configuration_directory():
