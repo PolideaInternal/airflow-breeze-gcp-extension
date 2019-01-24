@@ -71,6 +71,7 @@ cd /workspace
 pip install -e .[devel_ci] \
   && sudo service postgresql start \
   && sudo -u postgres createuser root \
+  && sudo -u postgres psql --command "ALTER USER root WITH PASSWORD 'airflow';" \
   && sudo -u postgres createdb airflow/airflow.db
 
 export GCP_SERVICE_ACCOUNT_KEY_NAME=${GCP_SERVICE_ACCOUNT_KEY_NAME:=""}

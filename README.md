@@ -124,13 +124,29 @@ Last used workspace, project, key and python version are used in this case:
 ./run_environment.sh
 ```
 
-## Forwarding port to Airflow's UI
+## Forwarding webserver port to Airflow's UI
 
-If you want to forward a port for using the webserver, use the --forward-port flag:
+If you want to forward a port for using the webserver, use the --forward-webserver-port flag:
 
 ```
-./run_environment.sh --forward-port 8080
+./run_environment.sh --forward-webserver-port 8080
 ```
+
+Note that you need to start the webserver manually with `airflow webserver` command.
+
+## Forwarding Postgres port to Airflow's Postgres DB
+
+If you want to forward a port for remotely accessing the database, use the --forward-postgres-port flag:
+
+```
+./run_environment.sh --forward-postgres-port 5433
+```
+
+Use localhost host, chosen port, `root` user, `airflow` password and 
+`airflow/airflow.db` database to connect.
+
+Example JDBC connection: `jdbc:postgresql://127.0.0.1:5433/airflow/airflow.db`
+ 
 
 ## Creating new workspace / changing workspace
 
@@ -190,6 +206,16 @@ roles to the project and reapply all permissions.
 You can read about reconfiguring and recreating the project in 
 [README.setup.md](README.setup.md#Additional-configuration)
 
+## Custom docker flags
+
+You can add custom docker flags to `./run_environment.sh` by adding the docker flags after
+`--`. For example:
+
+```
+./run_environment.sh -- -v /home:/mapped-home
+```
+
+
 ## Other operations
 
 For a full list of commands supported, use --help flag:
@@ -230,7 +256,7 @@ You may also delete the workspace folders after you are done with them.
 # Appendix: current ./run_environment flags
 
 ```
-Usage run_environment.sh [FLAGS] [-t <TEST_TARGET | -x <COMMAND ]
+Usage run_environment.sh [FLAGS] [-t <TEST_TARGET> | -x <COMMAND> ]
 
 Flags:
 
@@ -257,9 +283,14 @@ Flags:
 -P, --python <PYTHON_VERSION>
         Python virtualenv used by default. One of ('2.7', '3.5', '3.6'). [2.7]
 
--f, --forward-port <PORT_NUMBER>
+-f, --forward-webserver-port <PORT_NUMBER>
         Optional - forward the port PORT_NUMBER to airflow's webserver (you must start
         the server with 'airflow webserver' command manually).
+
+-F, --forward-postgres-port <PORT_NUMBER>
+        Optional - forward the port PORT_NUMBER to airflow's Postgres database. You can
+        login to the database as the user "root" with password "airflow". Database of airflow
+        is named "airflow/airflow.db".
 
 Reconfiguring existing project:
 

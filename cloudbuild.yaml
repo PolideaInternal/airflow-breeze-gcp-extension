@@ -20,12 +20,16 @@ steps:
   entrypoint: '/bin/bash'
   args: ['-c', 'docker pull gcr.io/${PROJECT_ID}/airflow-breeze:master || true']
 - name: 'gcr.io/cloud-builders/docker'
+  entrypoint: '/bin/bash'
+  args: ['-c', 'docker pull gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME} || true']
+- name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
           '--build-arg',
           'AIRFLOW_REPO_URL=https://github.com/PolideaInternal/airflow.git',
           '--build-arg',
-          'AIRFLOW_REPO_BRANCH=common_gcp_operator_fixes',
+          'AIRFLOW_REPO_BRANCH=wip-cloud-build',
           '--cache-from', 'gcr.io/${PROJECT_ID}/airflow-breeze:master',
+          '--cache-from', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}',
           '-t', 'gcr.io/${PROJECT_ID}/airflow-breeze:${BRANCH_NAME}',
           '.' ]
 images:
