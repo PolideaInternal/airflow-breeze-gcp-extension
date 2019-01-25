@@ -84,7 +84,7 @@ build_local () {
   echo "Building docker image '${IMAGE_NAME}'"
   docker build  \
     --build-arg AIRFLOW_REPO_URL=https://github.com/PolideaInternal/airflow.git \
-    --build-arg AIRFLOW_REPO_BRANCH=common_gcp_operator_fixes \
+    --build-arg AIRFLOW_REPO_BRANCH=wip-cloud-build \
     . -t ${IMAGE_NAME}
   if [[ "${UPLOAD_IMAGE}" != "false" ]]; then
     echo
@@ -154,7 +154,7 @@ docker run --rm -it --name airflow-breeze-${AIRFLOW_BREEZE_WORKSPACE_NAME} \
  -e GCP_CONFIG_DIR=/root/config \
  -e GCP_SERVICE_ACCOUNT_KEY_NAME=${AIRFLOW_BREEZE_KEY_NAME} \
  -v ${AIRFLOW_BREEZE_BASH_HISTORY_FILE}:/root/.bash_history \
-  ${DOCKER_PORT_ARG} ${IMAGE_NAME} /bin/bash -c \"/airflow/_init.sh ${POST_INIT_ARG}\"
+  ${DOCKER_PORT_ARG} $@ ${IMAGE_NAME} /bin/bash -c \"/airflow/_init.sh ${POST_INIT_ARG}\"
 """
 
   echo "*************************************************************************"
@@ -247,9 +247,14 @@ Flags:
 -P, --python <PYTHON_VERSION>
         Python virtualenv used by default. One of ('2.7', '3.5', '3.6'). [2.7]
 
--f, --forward-port <PORT_NUMBER>
+-f, --forward-webserver-port <PORT_NUMBER>
         Optional - forward the port PORT_NUMBER to airflow's webserver (you must start
         the server with 'airflow webserver' command manually).
+
+-F, --forward-postgres-port <PORT_NUMBER>
+        Optional - forward the port PORT_NUMBER to airflow's Postgres database. You can
+        login to the database as the user "root" with password "airflow". Database of airflow
+        is named "airflow/airflow.db".
 
 Reconfiguring existing project:
 
@@ -393,10 +398,11 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:KP:f:iudcgGzeR:B:t:x: \
-    -l help,project:,workspace:,key-name:,key-list,python:,forward-port:,do-not-rebuild-image,\
-upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,recreate-gcp-project,\
-compare-bootstrap-config,initialize-local-virtualenv,repository:,branch:,test-target:,execute: \
+    -o hp:w:k:KP:f:F:iudcgGzeR:B:t:x: \
+    -l help,project:,workspace:,key-name:,key-list,python:,forward-webserver-port:,forward-postgres-port:,\
+do-not-rebuild-image,upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,\
+recreate-gcp-project,compare-bootstrap-config,initialize-local-virtualenv,repository:,\
+branch:,test-target:,execute: \
     --name "$CMDNAME" -- "$@")
 
 if [[ $? -ne 0 ]]
@@ -423,8 +429,10 @@ do
       LIST_KEYS="true"; shift ;;
     -P|--python)
       AIRFLOW_BREEZE_PYTHON_VERSION="${2}"; shift 2 ;;
-    -f|--forward-port)
-      DOCKER_PORT_ARG="-p 127.0.0.1:${2}:8080"; shift 2 ;;
+    -f|--forward-webserver-port)
+      DOCKER_PORT_ARG="-p 127.0.0.1:${2}:8080 ${DOCKER_PORT_ARG}"; shift 2 ;;
+    -F|--forward-postgres-port)
+      DOCKER_PORT_ARG="-p 127.0.0.1:${2}:5432 ${DOCKER_PORT_ARG}"; shift 2 ;;
     -i|--do-not-rebuild-image)
       REBUILD=false; shift ;;
     -u|--upload-image)
@@ -859,5 +867,5 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     fi
     echo
 
-    run_container
+    run_container $@
 fi

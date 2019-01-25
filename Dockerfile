@@ -106,8 +106,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends sudo && apt-get
 RUN groupadd -r airflow && useradd -m -r -g airflow -G sudo airflow
 RUN echo 'airflow   ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-RUN pip install --upgrade pip setuptools virtualenvwrapper \
-   && pip3 install --upgrade pip setuptools virtualenvwrapper
+RUN pip install --upgrade setuptools virtualenvwrapper \
+   && pip3 install --upgrade setuptools virtualenvwrapper
 
 RUN source /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && mkvirtualenv -p /usr/bin/python3.6 airflow36  \
@@ -135,22 +135,25 @@ ENV CASS_DRIVER_NO_CYTHON=1
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow27 \
-    && pip install -e .[devel_ci]
+    && pip install --no-use-pep517 -e .[devel_ci]
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow36 \
-    && pip install -e .[devel_ci]
+    && pip install --no-use-pep517 -e .[devel_ci]
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \
     && workon airflow35 \
-    && pip install -e .[devel_ci]
+    && pip install --no-use-pep517 -e .[devel_ci]
 
 RUN apt-get update && apt-get install -y --no-install-recommends jq && apt-get clean
 RUN rm -rf temp_airflow
 
 RUN mkdir -pv /airflow/output
+
+RUN sed -i "s/^#listen_addresses.*/listen_addresses = '*'/" /etc/postgresql/10/main/postgresql.conf
+RUN sed -i "s/127.0.0.1\/32/0.0.0.0\/0/" /etc/postgresql/10/main/pg_hba.conf
 
 ## Add config and scripts
 COPY airflow.cfg /airflow/airflow.cfg
