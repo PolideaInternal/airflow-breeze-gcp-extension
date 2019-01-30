@@ -572,7 +572,7 @@ AIRFLOW_BREEZE_TEST_SUITE=${ASCII_USER:0:6}${NUMERIC_PYTHON_VERSION}
 RANDOM_FILE=${MY_DIR}/.random
 
 if [[ ! -f ${RANDOM_FILE} ]]; then
-    head /dev/urandom && true | env LC_CTYPE=C tr -dc 'a-z0-9' | fold -w 7 | head -n 1 > ${RANDOM_FILE}
+    head /dev/urandom && true | env LC_CTYPE=C tr -dc 'a-z0-9' | head -c 7 > ${RANDOM_FILE}
 fi
 AIRFLOW_BREEZE_SHORT_SHA=$(cat ${RANDOM_FILE})
 
