@@ -145,6 +145,12 @@ SERVICE_ACCOUNTS = [
          roles=['roles/storage.admin'],
          services=['storage-api.googleapis.com', 'storage-component.googleapis.com'],
          appspot_service_account_impersonation=False),
+    dict(keyfile='gcp_vision.json',
+         account_name='gcp-vision-account',
+         account_description='Google Cloud Vision account',
+         roles=['roles/storage.admin'],
+         services=['storage-api.googleapis.com', 'storage-component.googleapis.com'],
+         appspot_service_account_impersonation=False),
 ]
 
 
