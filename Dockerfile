@@ -106,8 +106,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends sudo && apt-get
 RUN groupadd -r airflow && useradd -m -r -g airflow -G sudo airflow
 RUN echo 'airflow   ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-RUN pip install --upgrade setuptools virtualenvwrapper \
-   && pip3 install --upgrade setuptools virtualenvwrapper
+RUN apt-get update \
+    && apt-get install python-setuptools python3-setuptools \
+    && apt-get clean
+
+RUN pip install --upgrade virtualenvwrapper \
+   && pip3 install --upgrade virtualenvwrapper
 
 RUN source /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && mkvirtualenv -p /usr/bin/python3.6 airflow36  \
