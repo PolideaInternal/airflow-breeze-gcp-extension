@@ -23,12 +23,12 @@ set -x
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 export AIRFLOW_HOME="${AIRFLOW_HOME:=/airflow}"
-export AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
-export AIRFLOW_OUTPUT="${AIRFLOW_SOURCES}/output"
+export AIRFLOW_ROOT="${AIRFLOW_ROOT:=/workspace}"
+export AIRFLOW_OUTPUT="${AIRFLOW_ROOT}/output"
 export AIRFLOW_BREEZE_TEST_SUITE="${AIRFLOW_BREEZE_TEST_SUITE:=docs}"
 export BUILD_ID="${BUILD_ID:=build}"
 
-export DOC_SOURCES_DIR=${DOC_SOURCES_DIR:=${AIRFLOW_SOURCES}/docs}
+export DOC_SOURCES_DIR=${DOC_SOURCES_DIR:=${AIRFLOW_ROOT}/docs}
 export DOC_OUTPUT_DIR=${AIRFLOW_OUTPUT}/${BUILD_ID}/docs
 
 pushd ${DOC_SOURCES_DIR}

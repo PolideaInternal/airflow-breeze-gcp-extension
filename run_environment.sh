@@ -36,11 +36,11 @@ RUN_DOCKER=true
 
 #################### Build image settings
 
-# If true, the docker image is rebuilt locally. Can be disabled with -r
+# If true, the docker image is rebuilt locally. Can be disabled with -i
 REBUILD=true
 # Whether to upload image to the GCR Repository
 UPLOAD_IMAGE=false
-# Whether to download image to the GCR Repository
+# Whether to download image from the GCR Repository
 DOWNLOAD_IMAGE=false
 # Whether to cleanup local image
 CLEANUP_IMAGE=false
@@ -59,13 +59,12 @@ RUN_PIP_INSTALL=false
 #################### Unit test variables
 
 # Holds the test target if the -t flag is used.
-DOCKER_TEST_ARG=""
+TEST_ARG=""
 
 #################### Arbitrary command variable
 
 # Holds arbitrary command if the -x flag is used.
 DOCKER_COMMAND_ARG=""
-
 
 #################### Reconfigure the GCP project
 RECONFIGURE_GCP_PROJECT=false
@@ -93,7 +92,7 @@ build_local () {
     docker push ${IMAGE_NAME}
   fi
 }
-# Helper function for building the docker image locally.
+# Helper function for downloading the docker image.
 download () {
   echo
   echo "Download docker image '${IMAGE_NAME}'"
@@ -126,11 +125,11 @@ cleanup () {
 # immediately executes integration test(s) specified, then exits.
 #
 run_container () {
-  if [[ ! -z ${DOCKER_TEST_ARG} ]]; then
+  if [[ ! -z ${TEST_ARG} ]]; then
       echo
-      echo "Running CI tests with tests: ${DOCKER_TEST_ARG}"
+      echo "Running CI tests with tests: ${TEST_ARG}"
       echo
-      POST_INIT_ARG="/airflow/_run_ci_tests.sh ${DOCKER_TEST_ARG}"
+      POST_INIT_ARG="/airflow/_run_ci_tests.sh ${TEST_ARG}"
   elif [[ ! -z ${DOCKER_COMMAND_ARG} ]]; then
       echo
       echo "Running arbitrary command: ${DOCKER_COMMAND_ARG}"
@@ -245,7 +244,7 @@ Flags:
         List all service keys that can be used with --key-name flag.
 
 -P, --python <PYTHON_VERSION>
-        Python virtualenv used by default. One of ('2.7', '3.5', '3.6'). [2.7]
+        Python virtualenv used by default. One of ('2.7', '3.5', '3.6'). [3.6]
 
 -f, --forward-webserver-port <PORT_NUMBER>
         Optional - forward the port PORT_NUMBER to airflow's webserver (you must start
@@ -320,17 +319,12 @@ Optional arbitrary command execution (mutually exclusive with running tests):
 
 -x, --execute <COMMAND>
         Run the specified command. It is run via 'bash -c' so if you want to run command
-        with parameters they must be all passed as one COMMAND (enclosed with ' or \".
+        with parameters they must be all passed as one COMMAND (enclosed with ' or \").
 
 
 """
 }
 ####################  Parsing options/arguments
-
-set +e
-getopt -T
-GETOPT_RETVAL=$?
-set -e
 
 cat << "EOF"
 
@@ -374,6 +368,12 @@ cat << "EOF"
 
 
 EOF
+
+set +e
+getopt -T
+GETOPT_RETVAL=$?
+set -e
+
 
 if [[ ${GETOPT_RETVAL} != 4 ]]; then
     echo
@@ -472,7 +472,7 @@ do
     -B|--branch)
       AIRFLOW_REPOSITORY_BRANCH="${2}"; shift 2 ;;
     -t|--test-target)
-      DOCKER_TEST_ARG="${2}"; shift 2 ;;
+      TEST_ARG="${2}"; shift 2 ;;
     -x|--execute)
       DOCKER_COMMAND_ARG="${2}"; shift 2 ;;
     --) shift ; break ;;
@@ -837,7 +837,7 @@ if [[ ${RUN_DOCKER} == "true" ]]; then
     echo
     echo " WORKSPACE                     = ${AIRFLOW_BREEZE_WORKSPACE_NAME}"
     echo
-    echo " AIRFLOW_SOURCE_DIR            = ${AIRFLOW_BREEZE_AIRFLOW_DIR}"
+    echo " AIRFLOW_ROOT                  = ${AIRFLOW_BREEZE_AIRFLOW_DIR}"
     echo " AIRFLOW_BREEZE_KEYS_DIR       = ${AIRFLOW_BREEZE_KEYS_DIR}"
     echo " GCP_CONFIG_DIR                = ${GCP_CONFIG_DIR}"
     echo " AIRFLOW_BREEZE_OUTPUT_DIR     = ${AIRFLOW_BREEZE_OUTPUT_DIR}"

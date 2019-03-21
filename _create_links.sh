@@ -19,7 +19,7 @@
 
 AIRFLOW_BREEZE_DAGS_TO_TEST=${AIRFLOW_BREEZE_DAGS_TO_TEST:=""}
 AIRFLOW_HOME=${AIRFLOW_HOME:=/airflow}
-AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
+AIRFLOW_ROOT="${AIRFLOW_ROOT:=/workspace}"
 
 if [[ ! -z ${AIRFLOW_BREEZE_DAGS_TO_TEST} ]]; then
     echo
@@ -28,7 +28,7 @@ if [[ ! -z ${AIRFLOW_BREEZE_DAGS_TO_TEST} ]]; then
 
     for DAG_TO_TEST in ${AIRFLOW_BREEZE_DAGS_TO_TEST}
     do
-         for FILE in $(ls ${AIRFLOW_SOURCES}/${DAG_TO_TEST})
+         for FILE in $(ls ${AIRFLOW_ROOT}/${DAG_TO_TEST})
          do
             FILE_BASENAME=$(basename ${FILE})
             ln -svf "${FILE}" "${AIRFLOW_HOME}"/dags/${FILE_BASENAME}

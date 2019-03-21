@@ -16,8 +16,8 @@ set -euo pipefail
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 export AIRFLOW_HOME="${AIRFLOW_HOME:=/airflow}"
-export AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
-export AIRFLOW_OUTPUT="${AIRFLOW_SOURCES}/output"
+export AIRFLOW_ROOT="${AIRFLOW_ROOT:=/workspace}"
+export AIRFLOW_OUTPUT="${AIRFLOW_ROOT}/output"
 export AIRFLOW_BREEZE_TEST_SUITE="${AIRFLOW_BREEZE_TEST_SUITE:=docs}"
 export BUILD_ID="${BUILD_ID:=build}"
 export GCP_PROJECT_ID=${GCP_PROJECT_ID:="wrong-project"}
@@ -33,9 +33,9 @@ mkdir -pv ${LOG_OUTPUT_DIR}
 
 echo "Decrypting variables"
 bash ${AIRFLOW_HOME}/_decrypt_encrypted_variables.sh ${GCP_PROJECT_ID} \
-   > ${AIRFLOW_SOURCES}/decrypted_variables.env
+   > ${AIRFLOW_ROOT}/decrypted_variables.env
 echo "Decrypted variables. Number of variables decrypted: "\
-     "$(wc -l ${AIRFLOW_SOURCES}/decrypted_variables.env)"
+     "$(wc -l ${AIRFLOW_ROOT}/decrypted_variables.env)"
 
 echo "Decrypting keys from ${GCP_SERVICE_ACCOUNT_KEY_DIR}"
 pushd ${GCP_SERVICE_ACCOUNT_KEY_DIR}

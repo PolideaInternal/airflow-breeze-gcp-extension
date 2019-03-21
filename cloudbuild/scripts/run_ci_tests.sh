@@ -24,8 +24,8 @@ MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # environment
 export AIRFLOW_HOME="${AIRFLOW_HOME:=/airflow}"
-export AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
-export AIRFLOW_OUTPUT="${AIRFLOW_SOURCES}/output"
+export AIRFLOW_ROOT="${AIRFLOW_ROOT:=/workspace}"
+export AIRFLOW_OUTPUT="${AIRFLOW_ROOT}/output"
 export AIRFLOW_BREEZE_TEST_SUITE="${AIRFLOW_BREEZE_TEST_SUITE:=none}"
 export BUILD_ID="${BUILD_ID:=build}"
 
@@ -38,7 +38,7 @@ mkdir -pv ${LOG_OUTPUT_DIR}
 rm -rvf ${LOG_OUTPUT_DIR}/*
 
 # add test/contrib to PYTHONPATH
-export PYTHONPATH=${PYTHONPATH:=""}:${AIRFLOW_SOURCES}/tests/test_utils
+export PYTHONPATH=${PYTHONPATH:=""}:${AIRFLOW_ROOT}/tests/test_utils
 
 # Generate the `airflow` executable if needed
 which airflow > /dev/null || python setup.py develop
@@ -48,7 +48,7 @@ rm -rfv ${TEST_OUTPUT_DIR}/${AIRFLOW_BREEZE_TEST_SUITE}-*.xml
 echo "Remove all symlinked DAGs with ${AIRFLOW_HOME}/dags/ prefix"
 rm -rfv ${AIRFLOW_HOME}/dags/*
 
-pushd ${AIRFLOW_SOURCES}
+pushd ${AIRFLOW_ROOT}
 
 FAILED="false"
 
@@ -79,7 +79,7 @@ for MODULE_TO_TEST in ${AIRFLOW_BREEZE_CI_TEST_MODULES:=""}; do
         --cover-erase \
         --cover-html \
         --cover-package=airflow \
-        --cover-html-dir=${AIRFLOW_SOURCES}/airflow/www/static/coverage"
+        --cover-html-dir=${AIRFLOW_ROOT}/airflow/www/static/coverage"
     fi
 
     # Add common parameters to nose
