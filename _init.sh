@@ -83,10 +83,10 @@ export AIRFLOW_HOME=${AIRFLOW_HOME:=/airflow}
 export GCP_CONFIG_DIR=${GCP_CONFIG_DIR:=${HOME}/onfig}
 export GCP_SERVICE_ACCOUNT_KEY_DIR=${GCP_CONFIG_DIR}/keys
 
-export AIRFLOW_SOURCES="${AIRFLOW_SOURCES:=/workspace}"
+export AIRFLOW_ROOT="${AIRFLOW_ROOT:=/workspace}"
 
 # Enable local executor
-export AIRFLOW_CONFIG=${AIRFLOW_SOURCES}/tests/contrib/operators/postgres_local_executor.cfg
+export AIRFLOW_CONFIG=${AIRFLOW_ROOT}/tests/contrib/operators/postgres_local_executor.cfg
 
 # Source all environment variables from key dir
 for ENV_FILE in ${GCP_SERVICE_ACCOUNT_KEY_DIR}/*.env
@@ -99,9 +99,9 @@ do
     fi
 done
 
-if [[ -f ${AIRFLOW_SOURCES}/decrypted_variables.env ]]; then
+if [[ -f ${AIRFLOW_ROOT}/decrypted_variables.env ]]; then
     set -x
-    source ${AIRFLOW_SOURCES}/decrypted_variables.env
+    source ${AIRFLOW_ROOT}/decrypted_variables.env
     set +x
 fi
 
