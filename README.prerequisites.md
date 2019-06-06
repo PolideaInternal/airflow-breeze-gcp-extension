@@ -1,8 +1,9 @@
 # Prerequisites for Airflow Breeze environment
 
 * If you are on MacOS you need gnu getopt to get the environment running. Typically 
-  uou need to run `brew install gnu-getopt` and then follow instructions (you need
-  to link the gnu getopt version to become first on the PATH).
+  you need to run `brew install gnu-getopt` and then follow instructions (you need
+  to link the gnu getopt version to become first on the PATH). On MacOS you also need
+  md5sum, run `brew install md5sha1sum` to install it.
 
 * Google Cloud Platform project which is connected to a billing account that you will use 
   to run the GCP services that Airflow will communicate with. You need to have the
