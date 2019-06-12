@@ -157,6 +157,12 @@ SERVICE_ACCOUNTS = [
          roles=['roles/editor'],
          services=['storage-api.googleapis.com', 'storage-component.googleapis.com'],
          appspot_service_account_impersonation=False),
+    dict(keyfile='gcp_dataproc.json',
+         account_name='gcp-dataproc-account',
+         account_description='Google Cloud Dataproc account',
+         roles=['roles/editor'],
+         services=['dataproc.googleapis.com'],
+         appspot_service_account_impersonation=False),
 ]
 
 
