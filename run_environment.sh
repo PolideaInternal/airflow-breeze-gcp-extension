@@ -27,6 +27,8 @@ CMDNAME="$(basename -- "$0")"
 # Repositories
 
 APACHE_AIRFLOW_REPO=https://github.com/apache/airflow.git
+APACHE_AIRFLOW_REPO_GIT=git@github.com:apache/airflow.git
+
 AIRFLOW_BREEZE_REPO=https://github.com/PolideaInternal/airflow-breeze
 
 #################### Port forwarding settings
@@ -48,13 +50,13 @@ CLEANUP_IMAGE=false
 LIST_KEYS=false
 # initializes local virtualenv
 INITIALIZE_LOCAL_VIRTUALENV=false
-# Repository which is used to clone airflow from - wh
-# en it's not yet checked out (default is the Apache one)
+# sync master
+SYNC_MASTER=false
+# Repository which is used to clone Airflow from - when
+# it's not yet checked out (default is the Apache one)
 AIRFLOW_REPOSITORY=""
 # Branch of the repository to check out when it's first cloned
 AIRFLOW_REPOSITORY_BRANCH="master"
-# Whether pip install should be executed when entering docker
-RUN_PIP_INSTALL=false
 
 #################### Unit test variables
 
@@ -307,6 +309,8 @@ Automated checkout of airflow project:
 -B, --branch [BRANCH]
         Branch to check out when cloning the repository specified by -R. [master]
 
+-S, --synchronise-master
+        Synchronizes master of your local and origin remote with the main apache repository.
 
 Optional unit tests execution (mutually exclusive with running arbitrary command):
 
@@ -398,11 +402,11 @@ if [[ ${GETOPT_RETVAL} != 4 ]]; then
 fi
 
 PARAMS=$(getopt \
-    -o hp:w:k:KP:f:F:iudcgGzeR:B:t:x: \
+    -o hp:w:k:KP:f:F:iudcgGzeR:B:St:x: \
     -l help,project:,workspace:,key-name:,key-list,python:,forward-webserver-port:,forward-postgres-port:,\
 do-not-rebuild-image,upload-image,dowload-image,cleanup-image,reconfigure-gcp-project,\
 recreate-gcp-project,compare-bootstrap-config,initialize-local-virtualenv,repository:,\
-branch:,test-target:,execute: \
+branch:,synchronise-master,test-target:,execute: \
     --name "$CMDNAME" -- "$@")
 
 if [[ $? -ne 0 ]]
@@ -471,6 +475,8 @@ do
       AIRFLOW_REPOSITORY="${2}"; shift 2 ;;
     -B|--branch)
       AIRFLOW_REPOSITORY_BRANCH="${2}"; shift 2 ;;
+    -S|--synchronize-master)
+      SYNC_MASTER="true"; RUN_DOCKER=false; shift ;;
     -t|--test-target)
       DOCKER_TEST_ARG="${2}"; shift 2 ;;
     -x|--execute)
@@ -766,6 +772,25 @@ fi
 if [[ ${LIST_KEYS} == "true" ]]; then
     echo "<KEY_NAME> can be one of: [$(cd ${AIRFLOW_BREEZE_KEYS_DIR} && ls *.json | tr '\n' ',')]"
     exit
+fi
+
+if [[ ${SYNC_MASTER} == "true" ]]; then
+        pushd ${AIRFLOW_BREEZE_AIRFLOW_DIR} || exit 1
+        set +e
+        git ls-remote --exit-code apache 2>/dev/null >/dev/null
+        if [[ $? != 0 ]]; then
+            echo "Adding remote apache ${APACHE_AIRFLOW_REPO_GIT}"
+            git remote add apache "${APACHE_AIRFLOW_REPO_GIT}"
+        fi
+        echo "Fetching apache repository"
+        git fetch apache
+        echo "Force local master to be the same as remote apache master"
+        git branch -f master apache/master
+        echo "Pushing local master to remote origin master"
+        git push origin master:master
+        set -e
+        popd || exit 1
+   exit
 fi
 
 if [[ ${RUN_DOCKER} == "true" ]]; then
