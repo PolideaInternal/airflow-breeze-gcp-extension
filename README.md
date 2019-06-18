@@ -289,8 +289,8 @@ Flags:
 
 -F, --forward-postgres-port <PORT_NUMBER>
         Optional - forward the port PORT_NUMBER to airflow's Postgres database. You can
-        login to the database as the user "root" with password "airflow". Database of airflow
-        is named "airflow/airflow.db".
+        login to the database as the user root with password airflow. Database of airflow
+        is named airflow/airflow.db.
 
 Reconfiguring existing project:
 
@@ -343,6 +343,8 @@ Automated checkout of airflow project:
 -B, --branch [BRANCH]
         Branch to check out when cloning the repository specified by -R. [master]
 
+-S, --synchronise-master
+        Synchronizes master of your local and origin remote with the main Apache repository.
 
 Optional unit tests execution (mutually exclusive with running arbitrary command):
 
