@@ -67,7 +67,7 @@ RUN apt-get update \
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        git-all tig tmux vim less curl gnupg2 software-properties-common \
+        git-all tig tmux vim less curl gnupg2 software-properties-common libpq-dev \
     && apt-get clean
 
 RUN export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" \
@@ -115,8 +115,7 @@ RUN pip install --upgrade virtualenvwrapper \
 
 RUN source /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && mkvirtualenv -p /usr/bin/python3.6 airflow36  \
-    && mkvirtualenv -p /usr/bin/python3.5 airflow35  \
-    && mkvirtualenv -p /usr/bin/python2.7 airflow27
+    && mkvirtualenv -p /usr/bin/python3.5 airflow35
 
 ## Preinstall airflow
 ## Airflow requires this variable be set on installation to avoid a GPL dependency.
@@ -135,11 +134,6 @@ RUN cd temp_airflow && git checkout ${AIRFLOW_REPO_BRANCH}
 # Speed up the installation of cassandra driver
 ENV CASS_DRIVER_BUILD_CONCURRENCY=8
 ENV CASS_DRIVER_NO_CYTHON=1
-
-RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
-    && cd temp_airflow \
-    && workon airflow27 \
-    && pip install --no-use-pep517 -e .[devel_ci]
 
 RUN . /usr/share/virtualenvwrapper/virtualenvwrapper.sh \
     && cd temp_airflow \

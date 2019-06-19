@@ -245,7 +245,7 @@ Flags:
         List all service keys that can be used with --key-name flag.
 
 -P, --python <PYTHON_VERSION>
-        Python virtualenv used by default. One of ('2.7', '3.5', '3.6'). [2.7]
+        Python virtualenv used by default. One of ('3.5', '3.6'). [3.5]
 
 -f, --forward-webserver-port <PORT_NUMBER>
         Optional - forward the port PORT_NUMBER to airflow's webserver (you must start
@@ -536,7 +536,7 @@ fi
 
 #################### Check project python version ##########################################
 
-ALLOWED_PYTHON_VERSIONS=" 2.7 3.5 3.6 "
+ALLOWED_PYTHON_VERSIONS=" 3.5 3.6 "
 
 if [[ ${ALLOWED_PYTHON_VERSIONS} != *" ${AIRFLOW_BREEZE_PYTHON_VERSION} "* ]]; then
     echo
