@@ -38,8 +38,8 @@ if [[ ${GCP_SERVICE_ACCOUNT_KEY_NAME} == "" ]]; then
   if [[ ${DATABASE_INITIALIZED:=""} == "" ]]; then
       echo
       echo "Resetting the database"
-      echo
-      airflow resetdb -y
+      echo "Works?"
+      airflow db reset -y
       echo
       source ${MY_DIR}/_create_links.sh
       echo
@@ -65,7 +65,7 @@ elif [[ -e "${GCP_SERVICE_ACCOUNT_KEY_DIR}/${GCP_SERVICE_ACCOUNT_KEY_NAME}" ]]; 
   echo
   echo "Resetting the database"
   echo
-  airflow resetdb -y
+  airflow db reset -y
   echo
   python ${MY_DIR}/_setup_gcp_connection.py "${GCP_PROJECT_ID}"
   echo
@@ -80,7 +80,7 @@ else
       echo
       echo "Resetting the database"
       echo
-      airflow resetdb -y
+      airflow db reset -y
       echo
       source ${MY_DIR}/_create_links.sh
       echo
