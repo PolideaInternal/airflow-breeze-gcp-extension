@@ -17,6 +17,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Bash sanity settings (error on exit, complain for undefined vars, error when pipe fails)
@@ -526,6 +527,7 @@ export AIRFLOW_BREEZE_PYTHON_VERSION_FILE=${AIRFLOW_BREEZE_WORKSPACE_DIR}/.pytho
 export AIRFLOW_BREEZE_PYTHON_VERSION="${AIRFLOW_BREEZE_PYTHON_VERSION:=$(cat ${AIRFLOW_BREEZE_PYTHON_VERSION_FILE} 2>/dev/null)}"
 export AIRFLOW_BREEZE_PYTHON_VERSION="${AIRFLOW_BREEZE_PYTHON_VERSION:=3.6}"
 
+
 #################### Check project id presence ##############################################
 
 if [[ -z "${AIRFLOW_BREEZE_PROJECT_ID:-}" ]]; then
@@ -744,7 +746,7 @@ if [[ ${INITIALIZE_LOCAL_VIRTUALENV} == "true" ]]; then
         if [[ ${SYSTEM} == "Darwin" ]]; then
             echo "  brew install sqlite mysql postgresql"
         else
-            echo "sudo apt-get install openssl sqlite libmysqlclient-dev libmysqld-dev postgresql --confirm"
+            echo "sudo apt-get install openssl sqlite libmysqlclient-dev libmysqld-dev libpq-dev libpq-dev python-psycopg2 postgresql --confirm"
         fi
         echo
         echo "#######################################################################"
@@ -759,12 +761,12 @@ if [[ ${INITIALIZE_LOCAL_VIRTUALENV} == "true" ]]; then
         echo "Resetting AIRFLOW sqlite database"
         echo
         unset AIRFLOW__CORE__UNIT_TEST_MODE
-        airflow resetdb -y
+        airflow db reset -y
         echo
         echo "Resetting AIRFLOW sqlite unit test database"
         echo
         export AIRFLOW__CORE__UNIT_TEST_MODE=True
-        airflow resetdb -y
+        airflow db reset -y
         exit
    fi
 fi

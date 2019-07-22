@@ -39,7 +39,7 @@ ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 # lsb
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        lsb-release mysql-server libmysqlclient-dev libsasl2-dev mysql-client \
+        lsb-release mysql-server libmysqlclient-dev libsasl2-dev libpq-dev mysql-client \
     && apt-get clean
 
 RUN apt-get update \

@@ -36,7 +36,7 @@ rm -rvf ${AIRFLOW_HOME}/logs/*
 echo
 echo "Resetting the database"
 echo
-airflow resetdb -y
+airflow db reset -y
 echo
 python ${MY_DIR}/_setup_gcp_connection.py "${GCP_PROJECT_ID}"
 echo
