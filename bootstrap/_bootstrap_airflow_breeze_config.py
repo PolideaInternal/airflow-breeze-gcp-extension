@@ -183,6 +183,12 @@ SERVICE_ACCOUNTS = [
          account_description='Google Cloud BigQuery account',
          roles=['roles/bigquery.admin', 'roles/storage.objectAdmin', 'roles/bigquery.tables.get'],
          services=['bigquery.googleapis.com']),
+    dict(keyfile='gcp_memorystore.json',
+         account_name='gcp-memorystore-account',
+         account_description='Google Cloud Memorystore account',
+         roles=['roles/redis.admin', 'roles/storage.admin'],
+         services=['redis.googleapis.com', 'storage-api.googleapis.com', 'storage-component.googleapis.com'],
+         appspot_service_account_impersonation=False),
 ]
 
 
